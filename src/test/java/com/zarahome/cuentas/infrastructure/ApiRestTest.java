@@ -178,7 +178,7 @@ class ApiRestTest {
 
     @Test
     void consultaPorDniNormalizaLaLetraYDevuelveTodasLasCuentas() throws Exception {
-        mvc.perform(get("/clientes/22222222b"))
+        mvc.perform(get("/clientes/22222222j"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.dni").value("22222222J"))
                 .andExpect(jsonPath("$.nombre").value("Raúl"))
@@ -219,7 +219,7 @@ class ApiRestTest {
     void creaUnClienteConDatosPendientesYLoExcluyeDelFiltroDeEdad() throws Exception {
         mvc.perform(post("/cuentas").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"dniCliente":"66666666f","tipoCuenta":"JUNIOR","total":0}
+                                {"dniCliente":"66666666q","tipoCuenta":"JUNIOR","total":0}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.dniCliente").value("66666666Q"));
