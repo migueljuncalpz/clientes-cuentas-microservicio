@@ -46,7 +46,8 @@ src/main/java/com/zarahome/cuentas/
     ├── config/                   # Composición de casos de uso y reloj UTC
     ├── rest/                     # Controladores, DTO y errores RFC 9457
     ├── persistence/              # Entidades JPA, adaptadores y transacciones
-    └── observability/            # Correlation ID y logs de peticiones
+    ├── observability/            # Correlation ID y logs de peticiones
+    └── security/                 # Cabeceras HTTP y prevención de caché
 src/main/resources/
 ├── application.yml
 ├── application-local.yml
@@ -218,6 +219,20 @@ TRACING_SAMPLING_PROBABILITY=1.0 \
 
 La configuración y los tipos de logs siguen la
 [documentación de Spring Boot](https://docs.spring.io/spring-boot/3.5/reference/actuator/tracing.html).
+
+## Análisis de seguridad con GitHub Actions
+
+El workflow `Security` integra **Gitleaks**, **OWASP Dependency-Check**, **CodeQL**,
+**ZAP** y **SonarQube**. Dependabot propone actualizaciones de Maven y acciones
+hacia `develop`. Los análisis generan informes y conservan los fallos detectados.
+
+Se ejecutan en push, pull requests, manualmente y semanalmente. CodeQL se activa
+por defecto en repositorios públicos; en privados requiere habilitación compatible.
+SonarQube se activa configurando `ENABLE_SONAR`, `SONAR_TOKEN` y el proyecto real.
+`NVD_API_KEY` es recomendable para Dependency-Check.
+
+La [guía de seguridad](docs/security.md) detalla la activación en GitHub, los
+secretos y variables, los criterios de fallo, los artefactos y los comandos locales.
 
 ## Trabajo con Gitflow
 
