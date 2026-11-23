@@ -184,8 +184,8 @@ components:
     Dni:
       type: string
       pattern: '^[0-9]{8}[A-Za-z]$'
-      example: 11111111A
-      description: Se normaliza a mayúsculas. No se valida la letra de control para admitir los datos del ejercicio.
+      example: 11111111H
+      description: Debe contener ocho dígitos y su letra de control válida. Se normaliza a mayúsculas.
     Importe:
       type: number
       minimum: 0

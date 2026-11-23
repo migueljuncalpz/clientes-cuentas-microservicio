@@ -14,16 +14,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ReglasDominioTest {
-    private static final Dni DNI = new Dni("11111111A");
+    private static final Dni DNI = new Dni("11111111H");
 
     @Test
-    void normalizaElDniSinExigirUnaLetraDeControlAjenaAlEnunciado() {
-        assertThat(new Dni("11111111a")).isEqualTo(DNI);
+    void normalizaElDniYValidaSuLetraDeControl() {
+        assertThat(new Dni("11111111h")).isEqualTo(DNI);
     }
 
     @ParameterizedTest
     @NullSource
-    @ValueSource(strings = {"", "1111111A", "111111111", " 11111111A", "11111111AA"})
+    @ValueSource(strings = {"", "1111111H", "111111111", " 11111111H", "11111111HH", "11111111A"})
     void rechazaDnisInvalidos(String valor) {
         assertThatThrownBy(() -> new Dni(valor)).isInstanceOf(ErrorDominio.class);
     }
@@ -73,7 +73,7 @@ class ReglasDominioTest {
         assertThat(cliente.cuentas()).isEmpty();
         assertThatThrownBy(() -> cliente.cuentas().add(cuenta(2L, "10")))
                 .isInstanceOf(UnsupportedOperationException.class);
-        CuentaBancaria ajena = CuentaBancaria.nueva(new Dni("22222222B"), TipoCuenta.NORMAL, dinero("1"));
+        CuentaBancaria ajena = CuentaBancaria.nueva(new Dni("22222222J"), TipoCuenta.NORMAL, dinero("1"));
         assertThatThrownBy(() -> cliente(null, List.of(ajena))).isInstanceOf(ErrorDominio.class);
     }
 

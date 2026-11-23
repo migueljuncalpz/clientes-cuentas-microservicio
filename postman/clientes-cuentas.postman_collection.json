@@ -23,7 +23,7 @@
     },
     {
       "key": "dniCliente",
-      "value": "11111111A",
+      "value": "11111111H",
       "type": "string"
     },
     {
@@ -286,7 +286,7 @@
                   "const clientes = pm.response.json();",
                   "pm.test(\"Incluye los cinco clientes iniciales\", function () {",
                   "    pm.expect(clientes).to.be.an(\"array\");",
-                  "    pm.expect(clientes.map(c => c.dni)).to.include.members([\"11111111A\", \"22222222B\", \"33333333C\", \"44444444D\", \"55555555E\"]);",
+                  "    pm.expect(clientes.map(c => c.dni)).to.include.members([\"11111111H\", \"22222222J\", \"33333333P\", \"44444444A\", \"55555555K\"]);",
                   "});",
                   "pm.test(\"Clientes ordenados y cuentas asociadas a su titular\", function () {",
                   "    const dnis = clientes.map(c => c.dni);",
@@ -340,7 +340,7 @@
                 }
               ],
               "cookie": [],
-              "body": "[\n  {\n    \"dni\": \"11111111A\",\n    \"nombre\": \"Juan\",\n    \"apellido1\": \"Pérez\",\n    \"apellido2\": \"López\",\n    \"fechaNacimiento\": \"1959-09-12\",\n    \"cuentas\": [\n      {\n        \"id\": 1,\n        \"dniCliente\": \"11111111A\",\n        \"tipoCuenta\": \"PREMIUM\",\n        \"total\": 150000\n      },\n      {\n        \"id\": 2,\n        \"dniCliente\": \"11111111A\",\n        \"tipoCuenta\": \"NORMAL\",\n        \"total\": 20000\n      }\n    ]\n  }\n]"
+              "body": "[\n  {\n    \"dni\": \"11111111H\",\n    \"nombre\": \"Juan\",\n    \"apellido1\": \"Pérez\",\n    \"apellido2\": \"López\",\n    \"fechaNacimiento\": \"1959-09-12\",\n    \"cuentas\": [\n      {\n        \"id\": 1,\n        \"dniCliente\": \"11111111H\",\n        \"tipoCuenta\": \"PREMIUM\",\n        \"total\": 150000\n      },\n      {\n        \"id\": 2,\n        \"dniCliente\": \"11111111H\",\n        \"tipoCuenta\": \"NORMAL\",\n        \"total\": 20000\n      }\n    ]\n  }\n]"
             }
           ]
         },
@@ -428,7 +428,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"dni\": \"11111111A\",\n  \"nombre\": \"Juan\",\n  \"apellido1\": \"Pérez\",\n  \"apellido2\": \"López\",\n  \"fechaNacimiento\": \"1959-09-12\",\n  \"cuentas\": [\n    {\n      \"id\": 1,\n      \"dniCliente\": \"11111111A\",\n      \"tipoCuenta\": \"PREMIUM\",\n      \"total\": 150000\n    },\n    {\n      \"id\": 2,\n      \"dniCliente\": \"11111111A\",\n      \"tipoCuenta\": \"NORMAL\",\n      \"total\": 20000\n    }\n  ]\n}"
+              "body": "{\n  \"dni\": \"11111111H\",\n  \"nombre\": \"Juan\",\n  \"apellido1\": \"Pérez\",\n  \"apellido2\": \"López\",\n  \"fechaNacimiento\": \"1959-09-12\",\n  \"cuentas\": [\n    {\n      \"id\": 1,\n      \"dniCliente\": \"11111111H\",\n      \"tipoCuenta\": \"PREMIUM\",\n      \"total\": 150000\n    },\n    {\n      \"id\": 2,\n      \"dniCliente\": \"11111111H\",\n      \"tipoCuenta\": \"NORMAL\",\n      \"total\": 20000\n    }\n  ]\n}"
             }
           ]
         },
@@ -661,7 +661,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"id\": 8,\n  \"dniCliente\": \"11111111A\",\n  \"tipoCuenta\": \"NORMAL\",\n  \"total\": 50000.25\n}"
+              "body": "{\n  \"id\": 8,\n  \"dniCliente\": \"11111111H\",\n  \"tipoCuenta\": \"NORMAL\",\n  \"total\": 50000.25\n}"
             }
           ]
         },
@@ -870,7 +870,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.collectionVariables.set(\"dniNuevo\", String(Math.floor(Math.random() * 100000000)).padStart(8, \"0\") + \"X\");",
+                  "const numeroDni = String(Math.floor(Math.random() * 100000000)).padStart(8, \"0\");",
+                  "const letrasDni = \"TRWAGMYFPDXBNJZSQVHLCKE\";",
+                  "pm.collectionVariables.set(\"dniNuevo\", numeroDni + letrasDni[Number(numeroDni) % 23]);",
                   "pm.collectionVariables.unset(\"cuentaNuevoClienteId\");"
                 ]
               }
@@ -946,7 +948,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"id\": 9,\n  \"dniCliente\": \"66666666X\",\n  \"tipoCuenta\": \"JUNIOR\",\n  \"total\": 300\n}"
+              "body": "{\n  \"id\": 9,\n  \"dniCliente\": \"66666666Q\",\n  \"tipoCuenta\": \"JUNIOR\",\n  \"total\": 300\n}"
             }
           ]
         },
@@ -1019,13 +1021,13 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clientes/99999999Z",
+              "raw": "{{baseUrl}}/clientes/99999999R",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "clientes",
-                "99999999Z"
+                "99999999R"
               ]
             },
             "description": ""
@@ -1066,13 +1068,13 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/clientes/99999999Z",
+                  "raw": "{{baseUrl}}/clientes/99999999R",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "clientes",
-                    "99999999Z"
+                    "99999999R"
                   ]
                 },
                 "description": ""
@@ -1091,7 +1093,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Not Found\",\n  \"status\": 404,\n  \"detail\": \"La solicitud no se puede completar.\",\n  \"instance\": \"/clientes/99999999Z\",\n  \"codigo\": \"CLIENTE_NO_ENCONTRADO\",\n  \"correlationId\": \"postman-ejemplo-001\"\n}"
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Not Found\",\n  \"status\": 404,\n  \"detail\": \"La solicitud no se puede completar.\",\n  \"instance\": \"/clientes/99999999R\",\n  \"codigo\": \"CLIENTE_NO_ENCONTRADO\",\n  \"correlationId\": \"postman-ejemplo-001\"\n}"
             }
           ]
         },

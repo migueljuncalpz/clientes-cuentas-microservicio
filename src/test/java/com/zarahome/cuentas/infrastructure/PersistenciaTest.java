@@ -53,7 +53,7 @@ class PersistenciaTest {
 
     @Test
     void revierteClienteYCuentaSiFallaLaTransaccion() {
-        Dni dni = new Dni("66666666F");
+        Dni dni = new Dni("66666666Q");
         assertThatThrownBy(() -> transacciones.ejecutar(() -> {
             clientes.crear(Cliente.pendiente(dni));
             cuentas.guardar(CuentaBancaria.nueva(dni, TipoCuenta.NORMAL, new Dinero(BigDecimal.TEN)));

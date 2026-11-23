@@ -70,8 +70,8 @@ los DTO HTTP nunca se devuelven al dominio.
   del filtro de adultos. Las pruebas fijan el reloj en el 23 de noviembre de 2026.
 - El filtro por cantidad compara la **suma de todas las cuentas** con `>` estricto.
   Por ejemplo, Juan suma 170000 y aparece al filtrar por 150000, pero no por 170000.
-- Se valida el formato del DNI, ocho dígitos y letra, y se normaliza a mayúsculas.
-  No se comprueba la letra de control porque los DNI de ejemplo no la cumplen.
+- Se valida el formato del DNI, sus ocho dígitos y la letra de control según el
+  algoritmo oficial; la letra se normaliza a mayúsculas.
 - `NORMAL`, `PREMIUM` y `JUNIOR` son categorías. No se añaden restricciones de edad
   o saldo por tipo que el ejercicio no define.
 - `PUT` sustituye el saldo y es idempotente. `POST` crea una cuenta en cada petición
@@ -175,18 +175,18 @@ TOKEN="$(python3 scripts/local-jwt.py)"
 curl http://localhost:8080/clientes -H "Authorization: Bearer ${TOKEN}"
 curl http://localhost:8080/clientes/mayores-de-edad -H "Authorization: Bearer ${TOKEN}"
 curl http://localhost:8080/clientes/con-cuenta-superior-a/150000 -H "Authorization: Bearer ${TOKEN}"
-curl http://localhost:8080/clientes/11111111A -H "Authorization: Bearer ${TOKEN}"
+curl http://localhost:8080/clientes/11111111H -H "Authorization: Bearer ${TOKEN}"
 
 curl -X POST http://localhost:8080/cuentas \
   -H "Authorization: Bearer ${TOKEN}" \
   -H 'Content-Type: application/json' \
   -H 'X-Correlation-ID: alta-cuenta-001' \
-  -d '{"dniCliente":"11111111A","tipoCuenta":"NORMAL","total":50000}'
+  -d '{"dniCliente":"11111111H","tipoCuenta":"NORMAL","total":50000}'
 
 curl -X POST http://localhost:8080/cuentas \
   -H "Authorization: Bearer ${TOKEN}" \
   -H 'Content-Type: application/json' \
-  -d '{"dniCliente":"66666666F","tipoCuenta":"JUNIOR","total":300}'
+  -d '{"dniCliente":"66666666Q","tipoCuenta":"JUNIOR","total":300}'
 
 curl -X PUT http://localhost:8080/cuentas/1 \
   -H "Authorization: Bearer ${TOKEN}" \

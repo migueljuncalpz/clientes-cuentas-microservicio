@@ -35,15 +35,15 @@ class ServiciosTest {
     private final Clock reloj = Clock.fixed(Instant.parse("2026-11-23T12:00:00Z"), ZoneOffset.UTC);
     private final ServicioClientes consultas = new ServicioClientes(clientes, transacciones, reloj);
     private final ServicioCuentas gestion = new ServicioCuentas(clientes, cuentas, transacciones);
-    private final Dni dni = new Dni("11111111A");
+    private final Dni dni = new Dni("11111111H");
     private final Dinero saldo = new Dinero(new BigDecimal("10.00"));
 
     @Test
     void distingueAdultosMenoresYFechasDesconocidasConRelojInyectado() {
         Cliente adulto = new Cliente(dni, "Juan", null, null, LocalDate.of(2008, 11, 23), List.of());
-        Cliente menor = new Cliente(new Dni("22222222B"), "Raúl", null, null,
+        Cliente menor = new Cliente(new Dni("22222222J"), "Raúl", null, null,
                 LocalDate.of(2008, 11, 24), List.of());
-        when(clientes.listarConCuentas()).thenReturn(List.of(adulto, menor, Cliente.pendiente(new Dni("33333333C"))));
+        when(clientes.listarConCuentas()).thenReturn(List.of(adulto, menor, Cliente.pendiente(new Dni("33333333P"))));
         assertThat(consultas.listarMayoresDeEdad()).containsExactly(adulto);
         assertThat(consultas.listar()).hasSize(3);
     }
@@ -52,7 +52,7 @@ class ServiciosTest {
     void filtraPorElSaldoAgregado() {
         Cliente cliente = new Cliente(dni, null, null, null, null,
                 List.of(CuentaBancaria.nueva(dni, TipoCuenta.NORMAL, saldo)));
-        when(clientes.listarConCuentas()).thenReturn(List.of(cliente, Cliente.pendiente(new Dni("22222222B"))));
+        when(clientes.listarConCuentas()).thenReturn(List.of(cliente, Cliente.pendiente(new Dni("22222222J"))));
         assertThat(consultas.listarConSaldoSuperiorA(new Dinero(BigDecimal.ZERO))).containsExactly(cliente);
         assertThat(consultas.listarConSaldoSuperiorA(saldo)).isEmpty();
     }

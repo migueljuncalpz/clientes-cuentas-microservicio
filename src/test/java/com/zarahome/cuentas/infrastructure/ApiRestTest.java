@@ -132,7 +132,7 @@ class ApiRestTest {
         Map<String, Integer> casos = Map.of(
                 "/clientes", 200,
                 "/clientes/invalido", 400,
-                "/clientes/99999999Z", 404);
+                "/clientes/99999999R", 404);
         for (Map.Entry<String, Integer> caso : casos.entrySet()) {
             mvc.perform(get(caso.getKey()))
                     .andExpect(status().is(caso.getValue()))
@@ -147,7 +147,7 @@ class ApiRestTest {
         mvc.perform(get("/clientes"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(5)))
-                .andExpect(jsonPath("$[*].dni", contains("11111111A", "22222222B", "33333333C", "44444444D", "55555555E")))
+                .andExpect(jsonPath("$[*].dni", contains("11111111H", "22222222J", "33333333P", "44444444A", "55555555K")))
                 .andExpect(jsonPath("$[0].nombre").value("Juan"))
                 .andExpect(jsonPath("$[0].fechaNacimiento").value("1959-09-12"))
                 .andExpect(jsonPath("$[0].cuentas", hasSize(2)))
@@ -160,14 +160,14 @@ class ApiRestTest {
     void devuelveSoloLosMayoresDeEdadConFechaDeterminista() throws Exception {
         mvc.perform(get("/clientes/mayores-de-edad"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[*].dni", contains("11111111A", "22222222B", "44444444D", "55555555E")));
+                .andExpect(jsonPath("$[*].dni", contains("11111111H", "22222222J", "44444444A", "55555555K")));
     }
 
     @Test
     void elFiltroSumaTodasLasCuentasYExcluyeLaIgualdad() throws Exception {
         mvc.perform(get("/clientes/con-cuenta-superior-a/150000"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[*].dni", contains("11111111A")));
+                .andExpect(jsonPath("$[*].dni", contains("11111111H")));
         mvc.perform(get("/clientes/con-cuenta-superior-a/170000"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
@@ -180,20 +180,20 @@ class ApiRestTest {
     void consultaPorDniNormalizaLaLetraYDevuelveTodasLasCuentas() throws Exception {
         mvc.perform(get("/clientes/22222222b"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.dni").value("22222222B"))
+                .andExpect(jsonPath("$.dni").value("22222222J"))
                 .andExpect(jsonPath("$.nombre").value("Raúl"))
                 .andExpect(jsonPath("$.cuentas", hasSize(2)));
     }
 
     @Test
     void informaDeUnClienteInexistenteConProblemaYCorrelacion() throws Exception {
-        mvc.perform(get("/clientes/99999999Z").header("X-Correlation-ID", "prueba-404"))
+        mvc.perform(get("/clientes/99999999R").header("X-Correlation-ID", "prueba-404"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(header().string("X-Correlation-ID", "prueba-404"))
                 .andExpect(jsonPath("$.codigo").value("CLIENTE_NO_ENCONTRADO"))
                 .andExpect(jsonPath("$.correlationId").value("prueba-404"))
-                .andExpect(jsonPath("$.instance").value("/clientes/99999999Z"));
+                .andExpect(jsonPath("$.instance").value("/clientes/99999999R"));
         assertThat(MDC.get("correlationId")).isNull();
     }
 
@@ -201,14 +201,14 @@ class ApiRestTest {
     void agregaUnaCuentaSinAlterarLosDatosDelClienteExistente() throws Exception {
         mvc.perform(post("/cuentas").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"dniCliente":"11111111A","tipoCuenta":"NORMAL","total":50000.25}
+                                {"dniCliente":"11111111H","tipoCuenta":"NORMAL","total":50000.25}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.dniCliente").value("11111111A"))
+                .andExpect(jsonPath("$.dniCliente").value("11111111H"))
                 .andExpect(jsonPath("$.tipoCuenta").value("NORMAL"))
                 .andExpect(jsonPath("$.total").value(50000.25));
-        mvc.perform(get("/clientes/11111111A"))
+        mvc.perform(get("/clientes/11111111H"))
                 .andExpect(jsonPath("$.nombre").value("Juan"))
                 .andExpect(jsonPath("$.fechaNacimiento").value("1959-09-12"))
                 .andExpect(jsonPath("$.cuentas", hasSize(3)));
@@ -222,8 +222,8 @@ class ApiRestTest {
                                 {"dniCliente":"66666666f","tipoCuenta":"JUNIOR","total":0}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.dniCliente").value("66666666F"));
-        mvc.perform(get("/clientes/66666666F"))
+                .andExpect(jsonPath("$.dniCliente").value("66666666Q"));
+        mvc.perform(get("/clientes/66666666Q"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre", nullValue()))
                 .andExpect(jsonPath("$.fechaNacimiento", nullValue()))
@@ -235,7 +235,7 @@ class ApiRestTest {
     @Test
     void dosAltasRepresentanDosCuentasDistintas() throws Exception {
         String body = """
-                {"dniCliente":"11111111A","tipoCuenta":"NORMAL","total":1}
+                {"dniCliente":"11111111H","tipoCuenta":"NORMAL","total":1}
                 """;
         MvcResult primera = mvc.perform(post("/cuentas").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated()).andReturn();
@@ -244,7 +244,7 @@ class ApiRestTest {
         JsonNode cuenta1 = objectMapper.readTree(primera.getResponse().getContentAsString());
         JsonNode cuenta2 = objectMapper.readTree(segunda.getResponse().getContentAsString());
         assertThat(cuenta1.get("id")).isNotEqualTo(cuenta2.get("id"));
-        mvc.perform(get("/clientes/11111111A")).andExpect(jsonPath("$.cuentas", hasSize(4)));
+        mvc.perform(get("/clientes/11111111H")).andExpect(jsonPath("$.cuentas", hasSize(4)));
     }
 
     @Test
@@ -255,7 +255,7 @@ class ApiRestTest {
                     .andExpect(jsonPath("$.id").value(1))
                     .andExpect(jsonPath("$.total").value(180000.10));
         }
-        mvc.perform(get("/clientes/11111111A"))
+        mvc.perform(get("/clientes/11111111H"))
                 .andExpect(jsonPath("$.cuentas", hasSize(2)))
                 .andExpect(jsonPath("$.cuentas[0].total").value(180000.10));
     }
@@ -277,18 +277,18 @@ class ApiRestTest {
         mvc.perform(put("/cuentas/1").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
-        mvc.perform(get("/clientes/11111111A")).andExpect(jsonPath("$.cuentas[0].total").value(150000.00));
+        mvc.perform(get("/clientes/11111111H")).andExpect(jsonPath("$.cuentas[0].total").value(150000.00));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {
             "{}",
             "{\"dniCliente\":\"mal\",\"tipoCuenta\":\"NORMAL\",\"total\":1}",
-            "{\"dniCliente\":\"66666666F\",\"tipoCuenta\":\"INVALIDA\",\"total\":1}",
-            "{\"dniCliente\":\"66666666F\",\"tipoCuenta\":0,\"total\":1}",
-            "{\"dniCliente\":\"66666666F\",\"tipoCuenta\":null,\"total\":1}",
-            "{\"dniCliente\":\"66666666F\",\"tipoCuenta\":\"NORMAL\",\"total\":-1}",
-            "{\"dniCliente\":\"66666666F\",\"tipoCuenta\":\"NORMAL\",\"total\":0.001}"
+            "{\"dniCliente\":\"66666666Q\",\"tipoCuenta\":\"INVALIDA\",\"total\":1}",
+            "{\"dniCliente\":\"66666666Q\",\"tipoCuenta\":0,\"total\":1}",
+            "{\"dniCliente\":\"66666666Q\",\"tipoCuenta\":null,\"total\":1}",
+            "{\"dniCliente\":\"66666666Q\",\"tipoCuenta\":\"NORMAL\",\"total\":-1}",
+            "{\"dniCliente\":\"66666666Q\",\"tipoCuenta\":\"NORMAL\",\"total\":0.001}"
     })
     void rechazaAltasInvalidasSinCrearClientesHuerfanos(String body) throws Exception {
         mvc.perform(post("/cuentas").contentType(MediaType.APPLICATION_JSON).content(body))
@@ -315,7 +315,7 @@ class ApiRestTest {
         mvc.perform(put("/cuentas/1").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"total\":99999999999999999.99}"))
                 .andExpect(status().isOk());
-        MvcResult resultado = mvc.perform(get("/clientes/11111111A")).andExpect(status().isOk()).andReturn();
+        MvcResult resultado = mvc.perform(get("/clientes/11111111H")).andExpect(status().isOk()).andReturn();
         JsonNode cliente = objectMapper.reader().with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
                 .readTree(resultado.getResponse().getContentAsString());
         assertThat(cliente.path("cuentas").get(0).path("total").asText()).isEqualTo("99999999999999999.99");
