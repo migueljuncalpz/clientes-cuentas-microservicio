@@ -10,8 +10,8 @@ import com.zarahome.cuentas.domain.Dinero;
 import com.zarahome.cuentas.domain.Dni;
 import com.zarahome.cuentas.domain.ErrorDominio;
 import com.zarahome.cuentas.domain.TipoCuenta;
-
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class ServicioCuentas implements GestionarCuentas {
     private final RepositorioClientes clientes;
@@ -27,12 +27,21 @@ public final class ServicioCuentas implements GestionarCuentas {
     @Override
     public CuentaBancaria crear(Dni dniCliente, TipoCuenta tipoCuenta, Dinero total) {
         CuentaBancaria nuevaCuenta = CuentaBancaria.nueva(dniCliente, tipoCuenta, total);
-        return transacciones.ejecutar(() -> {
-            if (!clientes.existe(dniCliente)) {
-                clientes.crear(Cliente.pendiente(dniCliente));
+        AtomicBoolean clienteNuevo = new AtomicBoolean();
+        try {
+            return transacciones.ejecutar(() -> {
+                if (!clientes.existe(dniCliente)) {
+                    clienteNuevo.set(true);
+                    clientes.crear(Cliente.pendiente(dniCliente));
+                }
+                return cuentas.guardar(nuevaCuenta);
+            });
+        } catch (ConflictoPersistenciaException conflicto) {
+            if (!clienteNuevo.get() || !transacciones.consultar(() -> clientes.existe(dniCliente))) {
+                throw conflicto;
             }
-            return cuentas.guardar(nuevaCuenta);
-        });
+            return transacciones.ejecutar(() -> cuentas.guardar(nuevaCuenta));
+        }
     }
 
     @Override

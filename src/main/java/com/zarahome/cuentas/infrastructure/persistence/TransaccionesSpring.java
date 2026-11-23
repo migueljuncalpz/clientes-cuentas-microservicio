@@ -1,6 +1,8 @@
 package com.zarahome.cuentas.infrastructure.persistence;
 
+import com.zarahome.cuentas.application.ConflictoPersistenciaException;
 import com.zarahome.cuentas.application.port.out.Transacciones;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -25,6 +27,10 @@ public class TransaccionesSpring implements Transacciones {
 
     @Override
     public <T> T ejecutar(Supplier<T> operacion) {
-        return escritura.execute(status -> operacion.get());
+        try {
+            return escritura.execute(status -> operacion.get());
+        } catch (DataIntegrityViolationException conflicto) {
+            throw new ConflictoPersistenciaException(conflicto);
+        }
     }
 }

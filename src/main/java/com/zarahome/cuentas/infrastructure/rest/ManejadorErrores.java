@@ -1,5 +1,6 @@
 package com.zarahome.cuentas.infrastructure.rest;
 
+import com.zarahome.cuentas.application.ConflictoPersistenciaException;
 import com.zarahome.cuentas.domain.ErrorDominio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +36,8 @@ public class ManejadorErrores extends ResponseEntityExceptionHandler {
         return respuesta(estado, error.codigo(), error.getMessage(), request);
     }
 
-    @ExceptionHandler({OptimisticLockingFailureException.class, DataIntegrityViolationException.class})
+    @ExceptionHandler({OptimisticLockingFailureException.class, DataIntegrityViolationException.class,
+            ConflictoPersistenciaException.class})
     ResponseEntity<Object> manejarConflicto(RuntimeException error, WebRequest request) {
         return respuesta(HttpStatus.CONFLICT, "CONFLICTO_CONCURRENCIA",
                 "La operación entra en conflicto con otra escritura. Consulta el estado antes de repetirla.", request);

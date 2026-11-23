@@ -23,8 +23,9 @@ del saldo, con arquitectura hexagonal y contrato OpenAPI.
 - Flyway controla esquema y datos iniciales. Hibernate valida el esquema y no lo
   crea. La clave foránea garantiza que una cuenta siempre tenga un titular.
 - `@Version` detecta actualizaciones concurrentes incompatibles y las traduce a
-  HTTP 409. Dos altas concurrentes del mismo cliente nuevo pueden producir 409
-  por la clave única; la transacción fallida se revierte sin sobrescribir datos.
+  HTTP 409. Si dos altas compiten por crear el mismo cliente, la operación que
+  pierde la carrera revierte su primera transacción y reintenta la cuenta en una
+  transacción nueva cuando confirma que el cliente ya existe.
 
 Se mantiene Spring Boot 3 por requisito del enunciado. La versión elegida y su
 compatibilidad están documentadas en las
@@ -75,8 +76,9 @@ los DTO HTTP nunca se devuelven al dominio.
 - `NORMAL`, `PREMIUM` y `JUNIOR` son categorías. No se añaden restricciones de edad
   o saldo por tipo que el ejercicio no define.
 - `PUT` sustituye el saldo y es idempotente. `POST` crea una cuenta en cada petición
-  y no debe reintentarse automáticamente: no hay consumidores de mensajes ni
-  integración externa que exija idempotencia de eventos.
+  y el cliente no debe reintentarla automáticamente, porque cada petición aceptada
+  crea una cuenta distinta. El servicio sí reintenta internamente la transacción
+  si detecta que otra petición creó concurrentemente al mismo cliente.
 
 ## Ejecutar
 
