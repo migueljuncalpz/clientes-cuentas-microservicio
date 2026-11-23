@@ -40,7 +40,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,prometheus
   endpoint:
     health:
       show-details: never
@@ -52,3 +52,12 @@ management:
       export:
         enabled: ${OTEL_EXPORT_ENABLED:false}
       endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+
+app:
+  security:
+    jwt:
+      issuer-uri: ${JWT_ISSUER_URI:}
+      jwk-set-uri: ${JWT_JWKS_URI:}
+      public-key-location: ${LOCAL_JWT_PUBLIC_KEY:}
+      audience: ${JWT_AUDIENCE:}
+      jws-algorithm: ${JWT_JWS_ALGORITHM:RS256}

@@ -15,10 +15,13 @@ import org.springframework.boot.test.autoconfigure.actuate.observability.AutoCon
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlGroup;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.yaml.snakeyaml.LoaderOptions;
@@ -36,10 +39,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -55,6 +55,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         @Sql(scripts = "/db/migration/V2__datos_iniciales.sql")
 })
 class ApiRestTest {
+    private static final String[] PERMISOS_PRUEBAS = {
+            "SCOPE_cuentas.read", "SCOPE_cuentas.write",
+            "SCOPE_actuator.health.read", "SCOPE_actuator.metrics.read"
+    };
+
     @Autowired
     private MockMvc mvc;
 
@@ -64,6 +69,27 @@ class ApiRestTest {
     @Autowired
     @Qualifier("requestMappingHandlerMapping")
     private RequestMappingHandlerMapping mapeos;
+
+    private static MockHttpServletRequestBuilder get(String ruta) {
+        return solicitudAutenticada(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(ruta));
+    }
+
+    private static MockHttpServletRequestBuilder post(String ruta) {
+        return solicitudAutenticada(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(ruta));
+    }
+
+    private static MockHttpServletRequestBuilder put(String ruta) {
+        return solicitudAutenticada(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(ruta));
+    }
+
+    private static MockHttpServletRequestBuilder delete(String ruta) {
+        return solicitudAutenticada(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete(ruta));
+    }
+
+    private static MockHttpServletRequestBuilder solicitudAutenticada(MockHttpServletRequestBuilder solicitud) {
+        return solicitud.with(jwt().authorities(java.util.Arrays.stream(PERMISOS_PRUEBAS)
+                .map(SimpleGrantedAuthority::new).toArray(GrantedAuthority[]::new)));
+    }
 
     @Test
     void elContratoTieneReferenciasValidasYCoincideConLosEndpointsImplementados() throws Exception {

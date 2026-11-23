@@ -5,6 +5,16 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "description": "Ejercicio de gestión de clientes y cuentas. Ejecutar la colección completa en orden con el servicio arrancado y los datos iniciales cargados. Usa variables de colección y el entorno Local. Cada ejecución crea dos cuentas y un cliente; las peticiones de actualización usan exclusivamente la cuenta creada en esa ejecución. Los datos personales del nuevo cliente quedan nulos. No se reintentan altas. Los ejemplos monetarios usan importes pequeños para evitar pérdidas de precisión del Number de JavaScript."
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
   "variable": [
     {
       "key": "baseUrl",

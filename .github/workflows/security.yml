@@ -139,6 +139,23 @@ jobs:
           cache: maven
       - name: Package the disposable application
         run: ./mvnw --batch-mode --no-transfer-progress -DskipTests -Djacoco.skip=true package
+      - name: Create disposable local JWT credentials
+        env:
+          LOCAL_JWT_KEY_DIR: ${{ runner.temp }}/local-jwt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$LOCAL_JWT_KEY_DIR"
+          export JWT_ISSUER_URI=cuentas-local
+          export JWT_AUDIENCE=cuentas-api-local
+          export LOCAL_JWT_PUBLIC_KEY="file:$LOCAL_JWT_KEY_DIR/public.pem"
+          token="$(python3 scripts/local-jwt.py)"
+          {
+            echo "JWT_ISSUER_URI=$JWT_ISSUER_URI"
+            echo "JWT_AUDIENCE=$JWT_AUDIENCE"
+            echo "LOCAL_JWT_PUBLIC_KEY=$LOCAL_JWT_PUBLIC_KEY"
+            echo "LOCAL_JWT_TOKEN=$token"
+          } >> "$GITHUB_ENV"
       - name: Start isolated H2 application
         shell: bash
         run: |
@@ -146,11 +163,13 @@ jobs:
           mkdir -p target/security
           java -jar target/clientes-cuentas-microservicio-0.1.0-SNAPSHOT.jar \
             --server.address=127.0.0.1 --server.port=8080 \
+            --spring.profiles.active=local \
             --spring.h2.console.enabled=false --management.otlp.tracing.export.enabled=false \
             > target/security/application.log 2>&1 &
           echo "$!" > target/security/application.pid
           for attempt in {1..60}; do
-            if curl --fail --silent http://127.0.0.1:8080/actuator/health > /dev/null; then
+            if curl --fail --silent --header "Authorization: Bearer $LOCAL_JWT_TOKEN" \
+              http://127.0.0.1:8080/actuator/health > /dev/null; then
               exit 0
             fi
             if ! kill -0 "$(cat target/security/application.pid)" 2>/dev/null; then
@@ -163,6 +182,10 @@ jobs:
           exit 1
       - name: Actively scan OpenAPI endpoints
         uses: zaproxy/action-api-scan@5158fe4d9d8fcc75ea204db81317cce7f9e5453d # v0.10.0
+        env:
+          ZAP_AUTH_HEADER: Authorization
+          ZAP_AUTH_HEADER_VALUE: Bearer ${{ env.LOCAL_JWT_TOKEN }}
+          ZAP_AUTH_HEADER_SITE: http://127.0.0.1:8080
         with:
           target: http://127.0.0.1:8080/openapi.yaml
           format: openapi

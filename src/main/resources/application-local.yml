@@ -1,7 +1,6 @@
-spring:
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-      settings:
-        web-allow-others: false
+app:
+  security:
+    jwt:
+      issuer-uri: cuentas-local
+      audience: cuentas-api-local
+      public-key-location: ${LOCAL_JWT_PUBLIC_KEY:file:${user.home}/.config/clientes-cuentas-microservicio/jwt/public.pem}
