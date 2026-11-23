@@ -25,6 +25,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.util.StringUtils;
 
 @Configuration
@@ -40,6 +41,7 @@ public class ConfiguracionSeguridad {
         return http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(new SoloBearerFilter(), SecurityContextHolderFilter.class)
                 .authorizeHttpRequests(autorizacion -> autorizacion
                         .requestMatchers(HttpMethod.GET, "/clientes", "/clientes/**").hasAuthority(CUENTAS_READ)
                         .requestMatchers(HttpMethod.POST, "/cuentas").hasAuthority(CUENTAS_WRITE)

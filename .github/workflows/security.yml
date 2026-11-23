@@ -81,10 +81,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          nvd_args=()
           if [[ -z "${NVD_API_KEY:-}" ]]; then
-            echo '::notice::NVD_API_KEY is not configured. Initial NVD updates will be slower.'
+            echo '::notice::NVD_API_KEY is not configured. Using official NVD JSON 2.0 feeds.'
+            nvd_args+=('-DnvdDatafeedUrl=https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{0}.json.gz')
           fi
-          ./mvnw --batch-mode --no-transfer-progress -Psecurity dependency-check:check
+          ./mvnw --batch-mode --no-transfer-progress -Psecurity dependency-check:check "${nvd_args[@]}"
       - name: Publish dependency vulnerability reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

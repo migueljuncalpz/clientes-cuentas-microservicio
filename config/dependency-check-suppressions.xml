@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd">
+    <suppress until="2027-05-23Z">
+        <notes><![CDATA[
+        Reviewed 2026-11-23. CVE-2026-54285 affects the npm package
+        @opentelemetry/core (JavaScript), not the 13 reviewed Java 1.49.0 JARs enumerated below.
+        Each JAR was inspected and contains io/opentelemetry JVM classes.
+        No future artifact names or versions are covered by this rule.
+        https://github.com/open-telemetry/opentelemetry-js/security/advisories/GHSA-8988-4f7v-96qf
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/io\.opentelemetry/(?:opentelemetry-api|opentelemetry-context|opentelemetry-exporter-common|opentelemetry-exporter-otlp|opentelemetry-exporter-otlp-common|opentelemetry-exporter-sender-okhttp|opentelemetry-extension-trace-propagators|opentelemetry-sdk|opentelemetry-sdk-common|opentelemetry-sdk-extension-autoconfigure-spi|opentelemetry-sdk-logs|opentelemetry-sdk-metrics|opentelemetry-sdk-trace)@1\.49\.0(?:\?.*)?$</packageUrl>
+        <cve>CVE-2026-54285</cve>
+    </suppress>
+</suppressions>

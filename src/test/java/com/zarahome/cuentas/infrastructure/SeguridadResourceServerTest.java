@@ -1,6 +1,8 @@
 package com.zarahome.cuentas.infrastructure;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
@@ -18,6 +20,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -64,6 +67,29 @@ class SeguridadResourceServerTest {
                 .andExpect(status().isOk());
         mvc.perform(get("/actuator/prometheus").with(jwtConPermisos("actuator.health.read")))
                 .andExpect(status().isForbidden());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DPoP token", "dpop token", "DPoP", "DPoP\ttoken"})
+    void rechazaDPoPAntesDeProcesarLaPrueba(String autorizacion) throws Exception {
+        mvc.perform(get("/clientes").header("Authorization", autorizacion)
+                        .with(jwtConPermisos("cuentas.read")))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("WWW-Authenticate", "Bearer"));
+    }
+
+    @Test
+    void rechazaPruebasDPoPAunqueElBearerSeaValido() throws Exception {
+        mvc.perform(get("/clientes").header("DPoP", "prueba-no-admitida")
+                        .with(jwtConPermisos("cuentas.read")))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void rechazaDPoPEnCualquieraDeLasCabecerasDeAutorizacion() throws Exception {
+        mvc.perform(get("/clientes").header("Authorization", "Bearer token", "DPoP token")
+                        .with(jwtConPermisos("cuentas.read")))
+                .andExpect(status().isUnauthorized());
     }
 
     private RequestPostProcessor jwtConPermisos(String... permisos) {

@@ -290,6 +290,13 @@ SonarQube se activa configurando `ENABLE_SONAR`, `SONAR_TOKEN` y el proyecto rea
 
 El workflow ZAP genera credenciales locales efímeras y escanea la API autenticándose.
 
+La revisión y las mitigaciones de dependencias se documentan en
+[SECURITY.md](SECURITY.md). Se mantiene Spring Boot 3 por el enunciado: las alertas
+pendientes de Spring siguen bloqueando Dependency-Check. La única exclusión
+corresponde a una CVE de OpenTelemetry JavaScript asociada a los artefactos Java.
+Sin `NVD_API_KEY`, el workflow utiliza los feeds JSON 2.0 oficiales de NVD.
+
+
 ## Trabajo con Gitflow
 
 `main` contiene versiones estables y `develop` integra funcionalidades. Este
