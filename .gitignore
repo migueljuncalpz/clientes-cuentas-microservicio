@@ -5,5 +5,4 @@ target/
 .env
 *.log
 
-/README.md
 /docs/
