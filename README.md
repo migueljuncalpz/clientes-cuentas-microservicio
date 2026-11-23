@@ -84,6 +84,12 @@ Requisitos: JDK 21, Python 3 y OpenSSL para generar JWT locales. El wrapper
 descarga la versión fijada de Maven en el primer uso y necesita acceso a Maven
 Central. También se puede utilizar Maven 3.6.3 o superior.
 
+El POM declara Lombok como procesador de anotaciones para que también se ejecute
+al compilar con JDK 23 o superior. El código generado sigue siendo compatible
+con Java 21. En IntelliJ, recarga el proyecto Maven después de cambiar el POM;
+para la prueba técnica, selecciona JDK 21 como Project SDK y Maven Runner JRE.
+
+
 El servicio está protegido con JWT Bearer también en el perfil local. Antes de
 arrancarlo, genera la clave RSA local (solo la primera vez):
 
