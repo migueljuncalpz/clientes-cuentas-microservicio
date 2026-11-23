@@ -3,71 +3,128 @@ info:
   title: API de clientes y cuentas bancarias
   version: 0.1.0
   description: >-
-    Saldos decimales no negativos con un máximo de dos decimales. La mayoría
-    de edad se calcula con la fecha UTC actual y comienza al cumplir 18 años.
-    Un cliente creado automáticamente solo dispone de DNI; los demás datos son nulos.
-    POST no es idempotente: cada petición crea una cuenta. PUT reemplaza el saldo y sí es idempotente.
+    API REST para consultar clientes y gestionar cuentas bancarias. Los datos
+    iniciales se cargan al arrancar; el almacenamiento H2 de esta entrega es
+    efímero. Los importes son decimales exactos con dos posiciones como máximo.
+    Los errores de validación, negocio y servidor siguen Problem Details (RFC 9457)
+    y añaden un código funcional y un identificador de correlación. Los errores
+    de autenticación y autorización (401/403) los genera Spring Security.
 servers:
-  - url: http://localhost:8080
+  - url: /
+    description: Servidor actual (por ejemplo, el puerto local de Docker Compose)
 security:
   - bearerAuth: []
 tags:
   - name: Clientes
+    description: Consultas de clientes y sus cuentas asociadas.
   - name: Cuentas
+    description: Alta de cuentas y sustitución de su saldo.
 paths:
   /clientes:
     get:
       tags: [Clientes]
       operationId: listarClientes
-      summary: Obtener todos los clientes con sus cuentas
+      summary: Listar clientes
+      description: >-
+        Devuelve todos los clientes, ordenados por DNI. Las cuentas incluidas en
+        cada cliente están ordenadas por identificador. Los campos personales
+        pueden ser nulos cuando el cliente se creó automáticamente durante el
+        alta de una cuenta.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       responses:
         '200':
           $ref: '#/components/responses/Clientes'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
         default:
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/UnexpectedError'
   /clientes/mayores-de-edad:
     get:
       tags: [Clientes]
       operationId: listarMayoresDeEdad
-      summary: Obtener clientes con 18 años cumplidos
-      description: Los clientes sin fecha de nacimiento se excluyen.
+      summary: Listar clientes mayores de edad
+      description: >-
+        Devuelve clientes que ya han cumplido 18 años según la fecha UTC actual.
+        Se excluyen los clientes cuya fecha de nacimiento es desconocida.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       responses:
         '200':
           $ref: '#/components/responses/Clientes'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
         default:
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/UnexpectedError'
   /clientes/con-cuenta-superior-a/{cantidad}:
     get:
       tags: [Clientes]
       operationId: listarClientesConSaldoSuperior
-      summary: Obtener clientes cuya suma de saldos es estrictamente superior a la cantidad
+      summary: Filtrar clientes por saldo agregado
+      description: >-
+        Devuelve clientes cuya suma de saldos de todas sus cuentas es estrictamente
+        mayor que `cantidad`. La comparación y el filtro se realizan en la consulta
+        a la base de datos. Un resultado vacío se representa como una lista vacía.
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - name: cantidad
           in: path
           required: true
+          description: Importe mínimo exclusivo para la suma de las cuentas del cliente.
           schema:
             $ref: '#/components/schemas/Importe'
+          example: 150000
       responses:
         '200':
           $ref: '#/components/responses/Clientes'
         '400':
-          $ref: '#/components/responses/Error'
+          description: >-
+            El parámetro no es numérico (`PARAMETRO_INVALIDO`) o está fuera del
+            rango o precisión permitidos (`IMPORTE_INVALIDO`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+              examples:
+                parametroInvalido:
+                  $ref: '#/components/examples/ParametroInvalido'
+                importeInvalido:
+                  $ref: '#/components/examples/ImporteInvalido'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
         default:
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/UnexpectedError'
   /clientes/{dni}:
     get:
       tags: [Clientes]
       operationId: obtenerCliente
-      summary: Obtener un cliente con sus cuentas
+      summary: Obtener cliente por DNI
+      description: >-
+        Devuelve el cliente y todas sus cuentas. Se acepta la letra de control en
+        minúscula y se devuelve normalizada a mayúscula.
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - name: dni
           in: path
           required: true
+          description: DNI con ocho dígitos y letra de control válida.
           schema:
             $ref: '#/components/schemas/Dni'
       responses:
         '200':
-          description: Cliente encontrado
+          description: Cliente encontrado.
           headers:
             X-Correlation-ID:
               $ref: '#/components/headers/CorrelationId'
@@ -75,84 +132,233 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Cliente'
+              example:
+                dni: 11111111H
+                nombre: Juan
+                apellido1: Pérez
+                apellido2: López
+                fechaNacimiento: '1959-09-12'
+                cuentas:
+                  - id: 1
+                    dniCliente: 11111111H
+                    tipoCuenta: PREMIUM
+                    total: 150000.00
         '400':
-          $ref: '#/components/responses/Error'
+          description: El formato o la letra de control del DNI no es válido.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+              examples:
+                dniInvalido:
+                  $ref: '#/components/examples/DniInvalido'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: No existe un cliente con ese DNI (`CLIENTE_NO_ENCONTRADO`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+              examples:
+                clienteNoEncontrado:
+                  $ref: '#/components/examples/ClienteNoEncontrado'
+        '500':
+          $ref: '#/components/responses/InternalError'
         default:
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/UnexpectedError'
   /cuentas:
     post:
       tags: [Cuentas]
       operationId: crearCuenta
-      summary: Crear una cuenta y, si no existe, su cliente
+      summary: Crear una cuenta
       description: >-
-        La creación de cliente y cuenta es atómica. Los datos personales no
-        suministrados quedan nulos. NORMAL, PREMIUM y JUNIOR son categorías;
-        el ejercicio no define restricciones de edad ni saldo por categoría.
+        Crea una cuenta y, si el DNI todavía no existe, crea el cliente dentro de
+        la misma transacción. Los datos personales del nuevo cliente quedan nulos.
+        Cada petición aceptada crea una cuenta distinta; el POST no es idempotente.
+        `NORMAL`, `PREMIUM` y `JUNIOR` son categorías sin reglas adicionales de
+        edad o saldo en este ejercicio. Si dos peticiones crean simultáneamente el
+        mismo cliente, el servicio reintenta la operación perdedora tras la carrera.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       requestBody:
         required: true
+        description: Datos necesarios para crear la cuenta.
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CrearCuenta'
+            examples:
+              cuentaNormal:
+                summary: Crear una cuenta normal
+                value:
+                  dniCliente: 22222222J
+                  tipoCuenta: NORMAL
+                  total: 250.00
       responses:
         '201':
-          $ref: '#/components/responses/Cuenta'
+          description: Cuenta creada.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cuenta'
+              example:
+                id: 8
+                dniCliente: 22222222J
+                tipoCuenta: NORMAL
+                total: 250.00
         '400':
-          $ref: '#/components/responses/Error'
+          description: >-
+            JSON inválido (`JSON_INVALIDO`), campos ausentes o inválidos
+            (`SOLICITUD_INVALIDA`), DNI inválido (`DNI_INVALIDO`) o importe fuera
+            del rango o precisión admitidos (`IMPORTE_INVALIDO`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+              examples:
+                solicitudInvalida:
+                  $ref: '#/components/examples/SolicitudInvalida'
+                jsonInvalido:
+                  $ref: '#/components/examples/JsonInvalido'
+                dniInvalido:
+                  $ref: '#/components/examples/DniInvalido'
+                importeInvalido:
+                  $ref: '#/components/examples/ImporteInvalido'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '409':
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
         default:
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/UnexpectedError'
   /cuentas/{idCuenta}:
     put:
       tags: [Cuentas]
       operationId: actualizarSaldo
-      summary: Reemplazar el saldo de una cuenta
-      description: Una escritura concurrente incompatible devuelve 409; no se reintenta automáticamente.
+      summary: Sustituir el saldo de una cuenta
+      description: >-
+        Reemplaza el saldo actual por `total`; enviar el mismo valor varias veces
+        produce el mismo estado, por lo que PUT es idempotente. Si otra escritura
+        concurrente impide aplicar la operación, se devuelve 409 y no se reintenta
+        automáticamente. Comprueba el estado antes de volver a enviarla.
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - name: idCuenta
           in: path
           required: true
+          description: Identificador positivo de la cuenta.
           schema:
             type: integer
             format: int64
             minimum: 1
+          example: 1
       requestBody:
         required: true
+        description: Nuevo saldo de la cuenta.
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ActualizarSaldo'
+            example:
+              total: 1250.50
       responses:
         '200':
-          $ref: '#/components/responses/Cuenta'
+          description: Saldo actualizado.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cuenta'
+              example:
+                id: 1
+                dniCliente: 11111111H
+                tipoCuenta: PREMIUM
+                total: 1250.50
         '400':
-          $ref: '#/components/responses/Error'
+          description: >-
+            Identificador inválido (`ID_CUENTA_INVALIDO`), JSON inválido
+            (`JSON_INVALIDO`), campos inválidos (`SOLICITUD_INVALIDA`) o saldo
+            fuera del rango o precisión permitidos (`IMPORTE_INVALIDO`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+              examples:
+                solicitudInvalida:
+                  $ref: '#/components/examples/SolicitudInvalida'
+                jsonInvalido:
+                  $ref: '#/components/examples/JsonInvalido'
+                importeInvalido:
+                  $ref: '#/components/examples/ImporteInvalido'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: No existe una cuenta con ese identificador (`CUENTA_NO_ENCONTRADA`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+              examples:
+                cuentaNoEncontrada:
+                  $ref: '#/components/examples/CuentaNoEncontrada'
         '409':
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
         default:
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/UnexpectedError'
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-  headers:
-    CorrelationId:
       description: >-
-        Identificador de correlación. Se conserva el X-Correlation-ID entrante
-        si contiene de 1 a 64 caracteres alfanuméricos, puntos, guiones o guiones bajos;
-        en otro caso se genera un UUID. Se aplica a todas las respuestas.
+        JWT firmado con RS256. Las operaciones requieren `cuentas.read` para GET
+        de clientes y `cuentas.write` para POST/PUT de cuentas. Actuator usa los
+        permisos `actuator.health.read` y `actuator.metrics.read`.
+  parameters:
+    CorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: false
+      description: >-
+        Identificador opcional para correlacionar la petición con los logs. Se
+        conserva si contiene de 1 a 64 caracteres alfanuméricos, puntos, guiones
+        o guiones bajos; si falta o no cumple el formato, el servidor genera un UUID.
       schema:
         type: string
+        minLength: 1
+        maxLength: 64
+        pattern: '^[A-Za-z0-9._-]{1,64}$'
+      example: prueba-123
+  headers:
+    CorrelationId:
+      description: Identificador usado para correlacionar la petición con los logs.
+      schema:
+        type: string
+      example: prueba-123
+    WwwAuthenticate:
+      description: Indica que se requiere autenticación Bearer.
+      schema:
+        type: string
+      example: Bearer
   responses:
     Clientes:
-      description: Clientes ordenados por DNI, con cuentas ordenadas por ID
+      description: Lista de clientes. Puede estar vacía si ningún cliente cumple el filtro.
       headers:
         X-Correlation-ID:
           $ref: '#/components/headers/CorrelationId'
@@ -162,17 +368,36 @@ components:
             type: array
             items:
               $ref: '#/components/schemas/Cliente'
-    Cuenta:
-      description: Cuenta persistida
+          example:
+            - dni: 11111111H
+              nombre: Juan
+              apellido1: Pérez
+              apellido2: López
+              fechaNacimiento: '1959-09-12'
+              cuentas:
+                - id: 1
+                  dniCliente: 11111111H
+                  tipoCuenta: PREMIUM
+                  total: 150000.00
+    Unauthorized:
+      description: >-
+        Falta el token Bearer, está caducado o no es válido. Revisa el token y
+        envíalo en `Authorization: Bearer <token>`. Spring Security responde con
+        `WWW-Authenticate`; el cuerpo puede estar vacío y no usa Problem Details.
       headers:
-        X-Correlation-ID:
-          $ref: '#/components/headers/CorrelationId'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Cuenta'
-    Error:
-      description: Error RFC 9457; 400 entrada inválida, 404 inexistente, 409 conflicto, 500 error interno
+        WWW-Authenticate:
+          $ref: '#/components/headers/WwwAuthenticate'
+      content: {}
+    Forbidden:
+      description: >-
+        El JWT es válido, pero no contiene el permiso requerido para esta operación.
+        Las operaciones GET de clientes requieren `cuentas.read`; POST y PUT de
+        cuentas requieren `cuentas.write`. Spring Security puede responder sin cuerpo.
+      content: {}
+    Conflict:
+      description: >-
+        La escritura entra en conflicto con otra modificación concurrente. No
+        reintentes automáticamente un PUT sin consultar primero el estado actual.
       headers:
         X-Correlation-ID:
           $ref: '#/components/headers/CorrelationId'
@@ -180,21 +405,145 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problema'
+          examples:
+            conflictoConcurrencia:
+              $ref: '#/components/examples/ConflictoConcurrencia'
+    InternalError:
+      description: Error inesperado. El detalle interno no se expone al cliente.
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+          examples:
+            errorInterno:
+              $ref: '#/components/examples/ErrorInterno'
+    UnexpectedError:
+      description: >-
+        Otro error HTTP o de servidor. Los errores gestionados por la aplicación
+        se devuelven como `application/problem+json`.
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+  examples:
+    SolicitudInvalida:
+      summary: Campo obligatorio o formato de campo no válido
+      value:
+        type: about:blank
+        title: Bad Request
+        status: 400
+        detail: Hay campos inválidos en la solicitud.
+        instance: /cuentas
+        codigo: SOLICITUD_INVALIDA
+        correlationId: 8b5f68a2-0cd1-4cc4-968a-1ef4d119558c
+        errores:
+          tipoCuenta: must not be null
+    JsonInvalido:
+      summary: JSON mal formado o valor no admitido
+      value:
+        type: about:blank
+        title: Bad Request
+        status: 400
+        detail: El cuerpo JSON no es válido o contiene campos o valores no admitidos.
+        instance: /cuentas
+        codigo: JSON_INVALIDO
+        correlationId: 8b5f68a2-0cd1-4cc4-968a-1ef4d119558c
+    DniInvalido:
+      summary: DNI vacío, con formato incorrecto o letra de control no válida
+      value:
+        type: about:blank
+        title: Bad Request
+        status: 400
+        detail: La letra de control del DNI no es válida.
+        instance: /clientes/12345678A
+        codigo: DNI_INVALIDO
+        correlationId: 8b5f68a2-0cd1-4cc4-968a-1ef4d119558c
+    ImporteInvalido:
+      summary: Importe negativo, demasiado grande o con más de dos decimales
+      value:
+        type: about:blank
+        title: Bad Request
+        status: 400
+        detail: El importe admite como máximo dos decimales.
+        instance: /cuentas
+        codigo: IMPORTE_INVALIDO
+        correlationId: 8b5f68a2-0cd1-4cc4-968a-1ef4d119558c
+    ParametroInvalido:
+      summary: El parámetro de ruta no se puede convertir a número
+      value:
+        type: about:blank
+        title: Bad Request
+        status: 400
+        detail: El parámetro no tiene el formato esperado.
+        instance: /clientes/con-cuenta-superior-a/abc
+        codigo: PARAMETRO_INVALIDO
+        correlationId: 8b5f68a2-0cd1-4cc4-968a-1ef4d119558c
+    ClienteNoEncontrado:
+      summary: DNI válido que no existe en la base de datos
+      value:
+        type: about:blank
+        title: Not Found
+        status: 404
+        detail: El cliente no existe.
+        instance: /clientes/12345678Z
+        codigo: CLIENTE_NO_ENCONTRADO
+        correlationId: 8b5f68a2-0cd1-4cc4-968a-1ef4d119558c
+    CuentaNoEncontrada:
+      summary: Cuenta inexistente
+      value:
+        type: about:blank
+        title: Not Found
+        status: 404
+        detail: La cuenta no existe.
+        instance: /cuentas/999
+        codigo: CUENTA_NO_ENCONTRADA
+        correlationId: 8b5f68a2-0cd1-4cc4-968a-1ef4d119558c
+    ConflictoConcurrencia:
+      summary: Escritura concurrente incompatible
+      value:
+        type: about:blank
+        title: Conflict
+        status: 409
+        detail: La operación entra en conflicto con otra escritura. Consulta el estado antes de repetirla.
+        instance: /cuentas/1
+        codigo: CONFLICTO_CONCURRENCIA
+        correlationId: 8b5f68a2-0cd1-4cc4-968a-1ef4d119558c
+    ErrorInterno:
+      summary: Error inesperado sin detalles internos
+      value:
+        type: about:blank
+        title: Internal Server Error
+        status: 500
+        detail: No se ha podido completar la operación.
+        instance: /cuentas
+        codigo: ERROR_INTERNO
+        correlationId: 8b5f68a2-0cd1-4cc4-968a-1ef4d119558c
   schemas:
     Dni:
       type: string
       pattern: '^[0-9]{8}[A-Za-z]$'
       example: 11111111H
-      description: Debe contener ocho dígitos y su letra de control válida. Se normaliza a mayúsculas.
+      description: >-
+        Ocho dígitos seguidos de una letra. La letra de control debe corresponder
+        al número y se devuelve normalizada a mayúscula; se acepta minúscula en la entrada.
     Importe:
       type: number
       minimum: 0
       maximum: 99999999999999999.99
       multipleOf: 0.01
-      example: 50000
+      example: 1250.50
+      description: Importe decimal entre 0 y 99999999999999999.99, con un máximo de dos decimales.
     TipoCuenta:
       type: string
       enum: [NORMAL, PREMIUM, JUNIOR]
+      description: Categoría de cuenta definida por el ejercicio.
+      example: NORMAL
     Cuenta:
       type: object
       required: [id, dniCliente, tipoCuenta, total]
@@ -203,6 +552,8 @@ components:
           type: integer
           format: int64
           minimum: 1
+          description: Identificador asignado por el sistema.
+          example: 1
         dniCliente:
           $ref: '#/components/schemas/Dni'
         tipoCuenta:
@@ -218,6 +569,7 @@ components:
         nombre:
           type: string
           nullable: true
+          description: Puede ser nulo si el cliente se creó automáticamente al crear su primera cuenta.
         apellido1:
           type: string
           nullable: true
@@ -228,8 +580,10 @@ components:
           type: string
           format: date
           nullable: true
+          description: Fecha ISO 8601 (yyyy-MM-dd); puede ser nula si no se conoce.
         cuentas:
           type: array
+          description: Cuentas del cliente ordenadas por identificador.
           items:
             $ref: '#/components/schemas/Cuenta'
     CrearCuenta:
@@ -238,7 +592,9 @@ components:
       required: [dniCliente, tipoCuenta, total]
       properties:
         dniCliente:
-          $ref: '#/components/schemas/Dni'
+          allOf:
+            - $ref: '#/components/schemas/Dni'
+          description: DNI del titular; si no existe, se crea un cliente con datos personales nulos.
         tipoCuenta:
           $ref: '#/components/schemas/TipoCuenta'
         total:
@@ -252,24 +608,61 @@ components:
           $ref: '#/components/schemas/Importe'
     Problema:
       type: object
+      description: >-
+        Respuesta de error conforme a Problem Details (RFC 9457), extendida con
+        `codigo`, `correlationId` y, para errores de validación, `errores`.
       required: [type, title, status, detail, instance, codigo, correlationId]
       properties:
         type:
           type: string
           format: uri
+          description: Tipo de problema. La implementación usa `about:blank`.
+          example: about:blank
         title:
           type: string
+          description: Título HTTP legible del error.
+          example: Bad Request
         status:
           type: integer
+          description: Código HTTP, igual al estado de la respuesta.
+          example: 400
         detail:
           type: string
+          description: Explicación legible sin detalles internos sensibles.
+          example: El DNI debe contener ocho dígitos y una letra.
         instance:
           type: string
+          description: Ruta de la petición que produjo el error.
+          example: /clientes/12345678A
         codigo:
           type: string
+          description: Código estable para identificar el tipo funcional de error.
+          enum:
+            - SOLICITUD_INVALIDA
+            - JSON_INVALIDO
+            - DNI_INVALIDO
+            - IMPORTE_INVALIDO
+            - ID_CUENTA_INVALIDO
+            - PARAMETRO_INVALIDO
+            - CLIENTE_NO_ENCONTRADO
+            - CUENTA_NO_ENCONTRADA
+            - CONFLICTO_CONCURRENCIA
+            - ERROR_INTERNO
+            - HTTP_400
+            - HTTP_404
+            - HTTP_405
+            - HTTP_406
+            - HTTP_415
+            - HTTP_500
+          example: DNI_INVALIDO
         correlationId:
           type: string
+          description: Identificador para localizar la petición en los logs.
+          example: 8b5f68a2-0cd1-4cc4-968a-1ef4d119558c
         errores:
           type: object
+          description: Mensajes de validación agrupados por nombre de campo; solo aparece en SOLICITUD_INVALIDA.
           additionalProperties:
             type: string
+          example:
+            total: must be greater than or equal to 0

@@ -31,9 +31,10 @@ class SeguridadResourceServerTest {
     private MockMvc mvc;
 
     @Test
-    void exigeTokenParaTodaLaAplicacionIncluyendoContratoYActuator() throws Exception {
+    void permiteLaDocumentacionPeroProtegeApiYActuator() throws Exception {
         mvc.perform(get("/clientes")).andExpect(status().isUnauthorized());
-        mvc.perform(get("/openapi.yaml")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/openapi.yaml")).andExpect(status().isOk());
+        mvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk());
         mvc.perform(get("/actuator/health")).andExpect(status().isUnauthorized());
     }
 

@@ -15,6 +15,7 @@
     <description>Gestión de clientes y cuentas con arquitectura hexagonal</description>
     <properties>
         <java.version>21</java.version>
+        <springdoc.version>2.10.1</springdoc.version>
         <!-- Security fixes beyond the last public Spring Boot 3.5 BOM. -->
         <tomcat.version>10.1.62</tomcat.version>
         <jackson-bom.version>2.21.8</jackson-bom.version>
@@ -59,6 +60,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>

@@ -1,0 +1,14 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      APP_SECURITY_ENABLED: "true"
+      JWT_ISSUER_URI: "cuentas-local"
+      JWT_AUDIENCE: "cuentas-api-local"
+      LOCAL_JWT_KEY_DIR: "/app/var/jwt"
+      LOCAL_JWT_PUBLIC_KEY: "file:/app/var/jwt/public.pem"
+      LOCAL_JWT_SCOPES: "cuentas.read cuentas.write actuator.health.read actuator.metrics.read"

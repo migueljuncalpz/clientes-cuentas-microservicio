@@ -43,6 +43,8 @@ public class ConfiguracionSeguridad {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(new SoloBearerFilter(), SecurityContextHolderFilter.class)
                 .authorizeHttpRequests(autorizacion -> autorizacion
+                        .requestMatchers(HttpMethod.GET, "/swagger-ui.html", "/swagger-ui/**", "/webjars/**",
+                                "/openapi.yaml", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/clientes", "/clientes/**").hasAuthority(CUENTAS_READ)
                         .requestMatchers(HttpMethod.POST, "/cuentas").hasAuthority(CUENTAS_WRITE)
                         .requestMatchers(HttpMethod.PUT, "/cuentas/**").hasAuthority(CUENTAS_WRITE)

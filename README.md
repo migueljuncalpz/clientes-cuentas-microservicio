@@ -155,6 +155,59 @@ incluidos Actuator y las operaciones de escritura, quedan accesibles sin token;
 la aplicación registra un aviso al arrancar. No uses esta opción en entornos
 compartidos o productivos.
 
+
+## Arrancar con Docker Compose
+
+Para quien corrige la prueba, basta con tener Docker Engine y Docker Compose v2;
+no hace falta instalar Java, Maven, Python ni OpenSSL en el equipo anfitrión. Desde
+la raíz del repositorio:
+
+```bash
+docker compose up --build --detach
+```
+
+La aplicación arranca en [http://localhost:8080](http://localhost:8080) con la
+seguridad activada. La interfaz Swagger UI queda en
+[http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) y el
+contrato OpenAPI en `/openapi.yaml`. Al iniciar, el contenedor genera una clave RSA
+local y un JWT de evaluación con permisos de lectura, escritura y Actuator. Para
+consultar los datos iniciales desde terminal:
+
+```bash
+TOKEN="$(docker compose exec -T app cat /app/var/jwt/token)"
+curl http://localhost:8080/clientes \
+  -H "Authorization: Bearer ${TOKEN}"
+```
+
+Para probar operaciones desde Swagger UI, copia el valor de `TOKEN`, abre
+**Authorize** y pégalo como Bearer token. La UI y el contrato son públicos; los
+endpoints de la API siguen exigiendo token.
+
+El token dura 15 minutos. Para renovarlo:
+
+```bash
+docker compose exec -T app sh -c 'python3 /app/local-jwt.py > /app/var/jwt/token && chmod 600 /app/var/jwt/token'
+TOKEN="$(docker compose exec -T app cat /app/var/jwt/token)"
+```
+
+Los logs de arranque se consultan con `docker compose logs --follow app`; se sale
+con `Ctrl+C`. También están disponibles `/actuator/health` y `/actuator/prometheus` usando el
+Bearer token. Si el puerto 8080 está ocupado, se
+puede elegir otro, por ejemplo `APP_PORT=8081 docker compose up --build --detach`;
+la aplicación seguirá escuchando dentro del contenedor en 8080.
+
+La clave y el token se generan dentro del contenedor y no se guardan en el
+repositorio ni en el equipo anfitrión. Este mecanismo es solo para la evaluación
+local, no para producción. La base H2 es efímera y vuelve a los datos iniciales al
+recrear el contenedor. Para detener y eliminarlo:
+
+```bash
+docker compose down
+```
+
+No se monta el código fuente ni se requiere un archivo `.env`. El flujo normal de
+pruebas sigue siendo `./mvnw clean verify`.
+
 ## API
 
 Contrato: [openapi.yaml](src/main/resources/static/openapi.yaml), también accesible
