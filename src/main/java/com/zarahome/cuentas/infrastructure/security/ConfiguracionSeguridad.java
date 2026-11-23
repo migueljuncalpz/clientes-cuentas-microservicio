@@ -13,6 +13,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.converter.RsaKeyConverters;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2Error;
@@ -27,6 +28,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.util.StringUtils;
 
 @Configuration
+@ConditionalOnProperty(name = "app.security.enabled", havingValue = "true", matchIfMissing = true)
 public class ConfiguracionSeguridad {
     private static final String CUENTAS_READ = "SCOPE_cuentas.read";
     private static final String CUENTAS_WRITE = "SCOPE_cuentas.write";

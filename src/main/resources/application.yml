@@ -55,6 +55,7 @@ management:
 
 app:
   security:
+    enabled: ${APP_SECURITY_ENABLED:true}
     jwt:
       issuer-uri: ${JWT_ISSUER_URI:}
       jwk-set-uri: ${JWT_JWKS_URI:}

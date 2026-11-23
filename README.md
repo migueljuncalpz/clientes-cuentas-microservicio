@@ -126,6 +126,27 @@ java -jar target/clientes-cuentas-microservicio-0.1.0-SNAPSHOT.jar --spring.prof
 
 El perfil `local` no expone la consola H2.
 
+### Omitir autenticación para la evaluación
+
+Si el entrevistador quiere ejecutar y probar la API sin tokens, puede desactivar
+la autenticación explícitamente mediante `APP_SECURITY_ENABLED=false`:
+
+```bash
+APP_SECURITY_ENABLED=false ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+También se puede usar con el JAR:
+
+```bash
+APP_SECURITY_ENABLED=false java -jar target/clientes-cuentas-microservicio-0.1.0-SNAPSHOT.jar \
+  --spring.profiles.active=local
+```
+
+La seguridad está activada por defecto. Al desactivarla, todas las rutas,
+incluidos Actuator y las operaciones de escritura, quedan accesibles sin token;
+la aplicación registra un aviso al arrancar. No uses esta opción en entornos
+compartidos o productivos.
+
 ## API
 
 Contrato: [openapi.yaml](src/main/resources/static/openapi.yaml), también accesible
