@@ -1,0 +1,1850 @@
+{
+  "info": {
+    "_postman_id": "36a71331-86d4-47c9-a454-22ae7ed57271",
+    "name": "Clientes y cuentas bancarias",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Ejercicio de gestión de clientes y cuentas. Ejecutar la colección completa en orden con el servicio arrancado y los datos iniciales cargados. Usa variables de colección y el entorno Local. Cada ejecución crea dos cuentas y un cliente; las peticiones de actualización usan exclusivamente la cuenta creada en esa ejecución. Los datos personales del nuevo cliente quedan nulos. No se reintentan altas. Los ejemplos monetarios usan importes pequeños para evitar pérdidas de precisión del Number de JavaScript."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "dniCliente",
+      "value": "11111111A",
+      "type": "string"
+    },
+    {
+      "key": "cantidadMinima",
+      "value": "150000",
+      "type": "string"
+    },
+    {
+      "key": "saldoInicial",
+      "value": "50000.25",
+      "type": "string"
+    },
+    {
+      "key": "saldoActualizado",
+      "value": "180000.10",
+      "type": "string"
+    },
+    {
+      "key": "cuentaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "dniNuevo",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cuentaNuevoClienteId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.variables.set(\"correlationId\", \"postman-\" + pm.variables.replaceIn(\"{{$guid}}\"));"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test(\"La respuesta conserva el Correlation ID\", function () {",
+          "    pm.expect(pm.response.headers.get(\"X-Correlation-ID\")).to.eql(pm.variables.get(\"correlationId\"));",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Diagnóstico",
+      "item": [
+        {
+          "name": "01 - Salud",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "*/*"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            },
+            "description": "Comprueba que la aplicación y su base de datos están disponibles."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Servicio operativo\", function () { pm.expect(pm.response.json().status).to.eql(\"UP\"); });"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ejemplo 200",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "*/*"
+                  },
+                  {
+                    "key": "X-Correlation-ID",
+                    "value": "{{correlationId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/actuator/health",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "actuator",
+                    "health"
+                  ]
+                },
+                "description": "Comprueba que la aplicación y su base de datos están disponibles."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "X-Correlation-ID",
+                  "value": "postman-ejemplo-001"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"status\": \"UP\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "02 - Contrato OpenAPI",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "*/*"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/openapi.yaml",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "openapi.yaml"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Contrato OpenAPI accesible\", function () { pm.expect(pm.response.text()).to.include(\"openapi: 3.0.3\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "03 - Métricas Prometheus",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "*/*"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/prometheus",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "prometheus"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Métricas JVM disponibles\", function () { pm.expect(pm.response.text()).to.include(\"jvm_memory_used_bytes\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01 - Consultas de clientes",
+      "item": [
+        {
+          "name": "01 - Listar clientes con sus cuentas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes"
+              ]
+            },
+            "description": "Admite clientes y cuentas añadidos en ejecuciones anteriores; no exige que la lista contenga exactamente cinco elementos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "",
+                  "const clientes = pm.response.json();",
+                  "pm.test(\"Incluye los cinco clientes iniciales\", function () {",
+                  "    pm.expect(clientes).to.be.an(\"array\");",
+                  "    pm.expect(clientes.map(c => c.dni)).to.include.members([\"11111111A\", \"22222222B\", \"33333333C\", \"44444444D\", \"55555555E\"]);",
+                  "});",
+                  "pm.test(\"Clientes ordenados y cuentas asociadas a su titular\", function () {",
+                  "    const dnis = clientes.map(c => c.dni);",
+                  "    pm.expect(dnis).to.eql(dnis.slice().sort());",
+                  "    clientes.forEach(c => {",
+                  "        pm.expect(c.cuentas).to.be.an(\"array\");",
+                  "        c.cuentas.forEach(cuenta => pm.expect(cuenta.dniCliente).to.eql(c.dni));",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ejemplo 200",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Correlation-ID",
+                    "value": "{{correlationId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/clientes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "clientes"
+                  ]
+                },
+                "description": "Admite clientes y cuentas añadidos en ejecuciones anteriores; no exige que la lista contenga exactamente cinco elementos."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "X-Correlation-ID",
+                  "value": "postman-ejemplo-001"
+                }
+              ],
+              "cookie": [],
+              "body": "[\n  {\n    \"dni\": \"11111111A\",\n    \"nombre\": \"Juan\",\n    \"apellido1\": \"Pérez\",\n    \"apellido2\": \"López\",\n    \"fechaNacimiento\": \"1959-09-12\",\n    \"cuentas\": [\n      {\n        \"id\": 1,\n        \"dniCliente\": \"11111111A\",\n        \"tipoCuenta\": \"PREMIUM\",\n        \"total\": 150000\n      },\n      {\n        \"id\": 2,\n        \"dniCliente\": \"11111111A\",\n        \"tipoCuenta\": \"NORMAL\",\n        \"total\": 20000\n      }\n    ]\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "02 - Consultar cliente por DNI",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clientes/{{dniCliente}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes",
+                "{{dniCliente}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "",
+                  "const cliente = pm.response.json();",
+                  "pm.test(\"Devuelve el cliente solicitado y sus cuentas\", function () {",
+                  "    pm.expect(cliente.dni).to.eql(pm.variables.get(\"dniCliente\").toUpperCase());",
+                  "    pm.expect(cliente.cuentas).to.be.an(\"array\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ejemplo 200",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Correlation-ID",
+                    "value": "{{correlationId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/clientes/{{dniCliente}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "clientes",
+                    "{{dniCliente}}"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "X-Correlation-ID",
+                  "value": "postman-ejemplo-001"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"dni\": \"11111111A\",\n  \"nombre\": \"Juan\",\n  \"apellido1\": \"Pérez\",\n  \"apellido2\": \"López\",\n  \"fechaNacimiento\": \"1959-09-12\",\n  \"cuentas\": [\n    {\n      \"id\": 1,\n      \"dniCliente\": \"11111111A\",\n      \"tipoCuenta\": \"PREMIUM\",\n      \"total\": 150000\n    },\n    {\n      \"id\": 2,\n      \"dniCliente\": \"11111111A\",\n      \"tipoCuenta\": \"NORMAL\",\n      \"total\": 20000\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "03 - Consultar mayores de edad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clientes/mayores-de-edad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes",
+                "mayores-de-edad"
+              ]
+            },
+            "description": "Calcula la mayoría de edad con la fecha UTC de ejecución, sin fijar una edad que caduque."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "",
+                  "const hoy = new Date();",
+                  "const hoyUtc = Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate());",
+                  "pm.test(\"Todos tienen al menos 18 años y fecha de nacimiento conocida\", function () {",
+                  "    const clientes = pm.response.json();",
+                  "    pm.expect(clientes).to.be.an(\"array\").that.is.not.empty;",
+                  "    clientes.forEach(c => {",
+                  "        pm.expect(c.fechaNacimiento).to.be.a(\"string\");",
+                  "        const [anio, mes, dia] = c.fechaNacimiento.split(\"-\").map(Number);",
+                  "        const ultimoDia = new Date(Date.UTC(anio + 18, mes, 0)).getUTCDate();",
+                  "        const cumple18 = Date.UTC(anio + 18, mes - 1, Math.min(dia, ultimoDia));",
+                  "        pm.expect(cumple18).to.be.at.most(hoyUtc);",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "04 - Filtrar por suma de saldos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clientes/con-cuenta-superior-a/{{cantidadMinima}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes",
+                "con-cuenta-superior-a",
+                "{{cantidadMinima}}"
+              ]
+            },
+            "description": "El criterio es la suma de las cuentas, no el saldo de una cuenta individual. Los valores de ejemplo están dentro del rango exacto de Number."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "",
+                  "const minimo = Number(pm.variables.get(\"cantidadMinima\"));",
+                  "pm.test(\"La suma de todas las cuentas supera estrictamente el límite\", function () {",
+                  "    const clientes = pm.response.json();",
+                  "    pm.expect(clientes).to.be.an(\"array\");",
+                  "    clientes.forEach(c => {",
+                  "        const centimos = c.cuentas.reduce((suma, cuenta) => suma + Math.round(cuenta.total * 100), 0);",
+                  "        pm.expect(centimos).to.be.above(Math.round(minimo * 100));",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Flujo de alta y actualización",
+      "description": "Ejecutar en orden. Los IDs se capturan en variables de colección. Las actualizaciones afectan solo a una cuenta recién creada.",
+      "item": [
+        {
+          "name": "01 - Crear cuenta para cliente existente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cuentas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas"
+              ]
+            },
+            "description": "Captura cuentaId para las tres peticiones siguientes. Cada POST crea una cuenta distinta.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"dniCliente\":\"{{dniCliente}}\",\"tipoCuenta\":\"NORMAL\",\"total\":{{saldoInicial}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.unset(\"cuentaId\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "",
+                  "const cuenta = pm.response.json();",
+                  "pm.test(\"Cuenta nueva del titular solicitado\", function () {",
+                  "    pm.expect(cuenta.id).to.be.a(\"number\").above(0);",
+                  "    pm.expect(cuenta.dniCliente).to.eql(pm.variables.get(\"dniCliente\").toUpperCase());",
+                  "    pm.expect(cuenta.tipoCuenta).to.eql(\"NORMAL\");",
+                  "    pm.expect(cuenta.total).to.eql(Number(pm.variables.get(\"saldoInicial\")));",
+                  "});",
+                  "if (pm.response.code === 201 && cuenta.id) { pm.collectionVariables.set(\"cuentaId\", String(cuenta.id)); }"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ejemplo 201",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Correlation-ID",
+                    "value": "{{correlationId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cuentas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cuentas"
+                  ]
+                },
+                "description": "Captura cuentaId para las tres peticiones siguientes. Cada POST crea una cuenta distinta.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"dniCliente\":\"{{dniCliente}}\",\"tipoCuenta\":\"NORMAL\",\"total\":{{saldoInicial}}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "X-Correlation-ID",
+                  "value": "postman-ejemplo-001"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 8,\n  \"dniCliente\": \"11111111A\",\n  \"tipoCuenta\": \"NORMAL\",\n  \"total\": 50000.25\n}"
+            }
+          ]
+        },
+        {
+          "name": "02 - Actualizar saldo de la cuenta creada",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cuentas/{{cuentaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas",
+                "{{cuentaId}}"
+              ]
+            },
+            "description": "Requiere ejecutar antes el alta de este mismo flujo; no modifica las siete cuentas iniciales.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"total\":{{saldoActualizado}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "",
+                  "pm.test(\"Mantiene el ID y sustituye el saldo\", function () {",
+                  "    const cuenta = pm.response.json();",
+                  "    pm.expect(String(cuenta.id)).to.eql(pm.collectionVariables.get(\"cuentaId\"));",
+                  "    pm.expect(cuenta.total).to.eql(Number(pm.variables.get(\"saldoActualizado\")));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "03 - Repetir actualización idempotente",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cuentas/{{cuentaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas",
+                "{{cuentaId}}"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"total\":{{saldoActualizado}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "",
+                  "pm.test(\"Mantiene el ID y sustituye el saldo\", function () {",
+                  "    const cuenta = pm.response.json();",
+                  "    pm.expect(String(cuenta.id)).to.eql(pm.collectionVariables.get(\"cuentaId\"));",
+                  "    pm.expect(cuenta.total).to.eql(Number(pm.variables.get(\"saldoActualizado\")));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "04 - Comprobar saldo persistido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clientes/{{dniCliente}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes",
+                "{{dniCliente}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "",
+                  "pm.test(\"El cliente contiene la cuenta con el saldo actualizado\", function () {",
+                  "    const cuenta = pm.response.json().cuentas.find(c => String(c.id) === pm.collectionVariables.get(\"cuentaId\"));",
+                  "    pm.expect(cuenta).to.exist;",
+                  "    pm.expect(cuenta.total).to.eql(Number(pm.variables.get(\"saldoActualizado\")));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "05 - Crear cuenta y cliente nuevo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cuentas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas"
+              ]
+            },
+            "description": "Genera un DNI por ejecución y captura el ID de su cuenta. Los datos personales del nuevo cliente quedan pendientes.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"dniCliente\":\"{{dniNuevo}}\",\"tipoCuenta\":\"JUNIOR\",\"total\":300}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"dniNuevo\", String(Math.floor(Math.random() * 100000000)).padStart(8, \"0\") + \"X\");",
+                  "pm.collectionVariables.unset(\"cuentaNuevoClienteId\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "",
+                  "const cuenta = pm.response.json();",
+                  "pm.test(\"Se crea la cuenta para el nuevo DNI\", function () {",
+                  "    pm.expect(cuenta.id).to.be.a(\"number\").above(0);",
+                  "    pm.expect(cuenta.dniCliente).to.eql(pm.collectionVariables.get(\"dniNuevo\"));",
+                  "    pm.expect(cuenta.total).to.eql(300);",
+                  "});",
+                  "if (pm.response.code === 201 && cuenta.id) { pm.collectionVariables.set(\"cuentaNuevoClienteId\", String(cuenta.id)); }"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ejemplo 201",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Correlation-ID",
+                    "value": "{{correlationId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cuentas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cuentas"
+                  ]
+                },
+                "description": "Genera un DNI por ejecución y captura el ID de su cuenta. Los datos personales del nuevo cliente quedan pendientes.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"dniCliente\":\"{{dniNuevo}}\",\"tipoCuenta\":\"JUNIOR\",\"total\":300}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "X-Correlation-ID",
+                  "value": "postman-ejemplo-001"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 9,\n  \"dniCliente\": \"66666666X\",\n  \"tipoCuenta\": \"JUNIOR\",\n  \"total\": 300\n}"
+            }
+          ]
+        },
+        {
+          "name": "06 - Consultar el cliente creado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clientes/{{dniNuevo}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes",
+                "{{dniNuevo}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "",
+                  "pm.test(\"El cliente tiene datos personales pendientes y su cuenta\", function () {",
+                  "    const cliente = pm.response.json();",
+                  "    pm.expect(cliente.dni).to.eql(pm.collectionVariables.get(\"dniNuevo\"));",
+                  "    [\"nombre\", \"apellido1\", \"apellido2\", \"fechaNacimiento\"].forEach(campo => pm.expect(cliente[campo]).to.eql(null));",
+                  "    const cuenta = cliente.cuentas.find(c => String(c.id) === pm.collectionVariables.get(\"cuentaNuevoClienteId\"));",
+                  "    pm.expect(cuenta).to.exist;",
+                  "    pm.expect(cuenta.total).to.eql(300);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Errores esperados",
+      "description": "Los códigos 400, 404 y 405 son resultados esperados de estas comprobaciones.",
+      "item": [
+        {
+          "name": "01 - Cliente inexistente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clientes/99999999Z",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes",
+                "99999999Z"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 404\", function () { pm.response.to.have.status(404); });",
+                  "",
+                  "pm.test(\"Error RFC 9457 con código de negocio y correlación\", function () {",
+                  "    const error = pm.response.json();",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(error.status).to.eql(404);",
+                  "    pm.expect(error.codigo).to.eql(\"CLIENTE_NO_ENCONTRADO\");",
+                  "    pm.expect(error.correlationId).to.eql(pm.variables.get(\"correlationId\"));",
+                  "    pm.expect(error.instance).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ejemplo 404",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Correlation-ID",
+                    "value": "{{correlationId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/clientes/99999999Z",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "clientes",
+                    "99999999Z"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                },
+                {
+                  "key": "X-Correlation-ID",
+                  "value": "postman-ejemplo-001"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Not Found\",\n  \"status\": 404,\n  \"detail\": \"La solicitud no se puede completar.\",\n  \"instance\": \"/clientes/99999999Z\",\n  \"codigo\": \"CLIENTE_NO_ENCONTRADO\",\n  \"correlationId\": \"postman-ejemplo-001\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "02 - DNI con formato inválido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clientes/invalido",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes",
+                "invalido"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "",
+                  "pm.test(\"Error RFC 9457 con código de negocio y correlación\", function () {",
+                  "    const error = pm.response.json();",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(error.status).to.eql(400);",
+                  "    pm.expect(error.codigo).to.eql(\"DNI_INVALIDO\");",
+                  "    pm.expect(error.correlationId).to.eql(pm.variables.get(\"correlationId\"));",
+                  "    pm.expect(error.instance).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ejemplo 400",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Correlation-ID",
+                    "value": "{{correlationId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/clientes/invalido",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "clientes",
+                    "invalido"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                },
+                {
+                  "key": "X-Correlation-ID",
+                  "value": "postman-ejemplo-001"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Bad Request\",\n  \"status\": 400,\n  \"detail\": \"La solicitud no se puede completar.\",\n  \"instance\": \"/clientes/invalido\",\n  \"codigo\": \"DNI_INVALIDO\",\n  \"correlationId\": \"postman-ejemplo-001\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "03 - Cuenta inexistente",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cuentas/9223372036854775807",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas",
+                "9223372036854775807"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"total\":1}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 404\", function () { pm.response.to.have.status(404); });",
+                  "",
+                  "pm.test(\"Error RFC 9457 con código de negocio y correlación\", function () {",
+                  "    const error = pm.response.json();",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(error.status).to.eql(404);",
+                  "    pm.expect(error.codigo).to.eql(\"CUENTA_NO_ENCONTRADA\");",
+                  "    pm.expect(error.correlationId).to.eql(pm.variables.get(\"correlationId\"));",
+                  "    pm.expect(error.instance).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ejemplo 404",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Correlation-ID",
+                    "value": "{{correlationId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cuentas/9223372036854775807",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cuentas",
+                    "9223372036854775807"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"total\":1}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                },
+                {
+                  "key": "X-Correlation-ID",
+                  "value": "postman-ejemplo-001"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Not Found\",\n  \"status\": 404,\n  \"detail\": \"La solicitud no se puede completar.\",\n  \"instance\": \"/cuentas/9223372036854775807\",\n  \"codigo\": \"CUENTA_NO_ENCONTRADA\",\n  \"correlationId\": \"postman-ejemplo-001\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "04 - Saldo negativo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cuentas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"dniCliente\":\"{{dniCliente}}\",\"tipoCuenta\":\"NORMAL\",\"total\":-1}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "",
+                  "pm.test(\"Error RFC 9457 con código de negocio y correlación\", function () {",
+                  "    const error = pm.response.json();",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(error.status).to.eql(400);",
+                  "    pm.expect(error.codigo).to.eql(\"SOLICITUD_INVALIDA\");",
+                  "    pm.expect(error.correlationId).to.eql(pm.variables.get(\"correlationId\"));",
+                  "    pm.expect(error.instance).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ejemplo 400",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Correlation-ID",
+                    "value": "{{correlationId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cuentas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cuentas"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"dniCliente\":\"{{dniCliente}}\",\"tipoCuenta\":\"NORMAL\",\"total\":-1}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                },
+                {
+                  "key": "X-Correlation-ID",
+                  "value": "postman-ejemplo-001"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Bad Request\",\n  \"status\": 400,\n  \"detail\": \"La solicitud no se puede completar.\",\n  \"instance\": \"/cuentas\",\n  \"codigo\": \"SOLICITUD_INVALIDA\",\n  \"correlationId\": \"postman-ejemplo-001\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "05 - Demasiados decimales",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cuentas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"dniCliente\":\"{{dniCliente}}\",\"tipoCuenta\":\"NORMAL\",\"total\":0.001}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "",
+                  "pm.test(\"Error RFC 9457 con código de negocio y correlación\", function () {",
+                  "    const error = pm.response.json();",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(error.status).to.eql(400);",
+                  "    pm.expect(error.codigo).to.eql(\"IMPORTE_INVALIDO\");",
+                  "    pm.expect(error.correlationId).to.eql(pm.variables.get(\"correlationId\"));",
+                  "    pm.expect(error.instance).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ejemplo 400",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Correlation-ID",
+                    "value": "{{correlationId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cuentas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cuentas"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"dniCliente\":\"{{dniCliente}}\",\"tipoCuenta\":\"NORMAL\",\"total\":0.001}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                },
+                {
+                  "key": "X-Correlation-ID",
+                  "value": "postman-ejemplo-001"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Bad Request\",\n  \"status\": 400,\n  \"detail\": \"La solicitud no se puede completar.\",\n  \"instance\": \"/cuentas\",\n  \"codigo\": \"IMPORTE_INVALIDO\",\n  \"correlationId\": \"postman-ejemplo-001\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "06 - Tipo de cuenta desconocido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cuentas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"dniCliente\":\"{{dniCliente}}\",\"tipoCuenta\":\"DESCONOCIDA\",\"total\":1}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "",
+                  "pm.test(\"Error RFC 9457 con código de negocio y correlación\", function () {",
+                  "    const error = pm.response.json();",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(error.status).to.eql(400);",
+                  "    pm.expect(error.codigo).to.eql(\"JSON_INVALIDO\");",
+                  "    pm.expect(error.correlationId).to.eql(pm.variables.get(\"correlationId\"));",
+                  "    pm.expect(error.instance).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ejemplo 400",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Correlation-ID",
+                    "value": "{{correlationId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cuentas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cuentas"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"dniCliente\":\"{{dniCliente}}\",\"tipoCuenta\":\"DESCONOCIDA\",\"total\":1}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                },
+                {
+                  "key": "X-Correlation-ID",
+                  "value": "postman-ejemplo-001"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Bad Request\",\n  \"status\": 400,\n  \"detail\": \"La solicitud no se puede completar.\",\n  \"instance\": \"/cuentas\",\n  \"codigo\": \"JSON_INVALIDO\",\n  \"correlationId\": \"postman-ejemplo-001\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "07 - Campo JSON desconocido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cuentas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"dniCliente\":\"{{dniCliente}}\",\"tipoCuenta\":\"NORMAL\",\"total\":1,\"extra\":true}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "",
+                  "pm.test(\"Error RFC 9457 con código de negocio y correlación\", function () {",
+                  "    const error = pm.response.json();",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(error.status).to.eql(400);",
+                  "    pm.expect(error.codigo).to.eql(\"JSON_INVALIDO\");",
+                  "    pm.expect(error.correlationId).to.eql(pm.variables.get(\"correlationId\"));",
+                  "    pm.expect(error.instance).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ejemplo 400",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Correlation-ID",
+                    "value": "{{correlationId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cuentas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cuentas"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"dniCliente\":\"{{dniCliente}}\",\"tipoCuenta\":\"NORMAL\",\"total\":1,\"extra\":true}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                },
+                {
+                  "key": "X-Correlation-ID",
+                  "value": "postman-ejemplo-001"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Bad Request\",\n  \"status\": 400,\n  \"detail\": \"La solicitud no se puede completar.\",\n  \"instance\": \"/cuentas\",\n  \"codigo\": \"JSON_INVALIDO\",\n  \"correlationId\": \"postman-ejemplo-001\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "08 - Método no permitido",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cuentas/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas",
+                "1"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado HTTP 405\", function () { pm.response.to.have.status(405); });",
+                  "",
+                  "pm.test(\"Error RFC 9457 con código de negocio y correlación\", function () {",
+                  "    const error = pm.response.json();",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(error.status).to.eql(405);",
+                  "    pm.expect(error.codigo).to.eql(\"HTTP_405\");",
+                  "    pm.expect(error.correlationId).to.eql(pm.variables.get(\"correlationId\"));",
+                  "    pm.expect(error.instance).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ejemplo 405",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Correlation-ID",
+                    "value": "{{correlationId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cuentas/1",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cuentas",
+                    "1"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "Method Not Allowed",
+              "code": 405,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                },
+                {
+                  "key": "X-Correlation-ID",
+                  "value": "postman-ejemplo-001"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Method Not Allowed\",\n  \"status\": 405,\n  \"detail\": \"La solicitud no se puede completar.\",\n  \"instance\": \"/cuentas/1\",\n  \"codigo\": \"HTTP_405\",\n  \"correlationId\": \"postman-ejemplo-001\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
