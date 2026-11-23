@@ -1,0 +1,268 @@
+openapi: 3.0.3
+info:
+  title: API de clientes y cuentas bancarias
+  version: 0.1.0
+  description: >-
+    Saldos decimales no negativos con un máximo de dos decimales. La mayoría
+    de edad se calcula con la fecha UTC actual y comienza al cumplir 18 años.
+    Un cliente creado automáticamente solo dispone de DNI; los demás datos son nulos.
+    POST no es idempotente: cada petición crea una cuenta. PUT reemplaza el saldo y sí es idempotente.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: Clientes
+  - name: Cuentas
+paths:
+  /clientes:
+    get:
+      tags: [Clientes]
+      operationId: listarClientes
+      summary: Obtener todos los clientes con sus cuentas
+      responses:
+        '200':
+          $ref: '#/components/responses/Clientes'
+        default:
+          $ref: '#/components/responses/Error'
+  /clientes/mayores-de-edad:
+    get:
+      tags: [Clientes]
+      operationId: listarMayoresDeEdad
+      summary: Obtener clientes con 18 años cumplidos
+      description: Los clientes sin fecha de nacimiento se excluyen.
+      responses:
+        '200':
+          $ref: '#/components/responses/Clientes'
+        default:
+          $ref: '#/components/responses/Error'
+  /clientes/con-cuenta-superior-a/{cantidad}:
+    get:
+      tags: [Clientes]
+      operationId: listarClientesConSaldoSuperior
+      summary: Obtener clientes cuya suma de saldos es estrictamente superior a la cantidad
+      parameters:
+        - name: cantidad
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Importe'
+      responses:
+        '200':
+          $ref: '#/components/responses/Clientes'
+        '400':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /clientes/{dni}:
+    get:
+      tags: [Clientes]
+      operationId: obtenerCliente
+      summary: Obtener un cliente con sus cuentas
+      parameters:
+        - name: dni
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Dni'
+      responses:
+        '200':
+          description: Cliente encontrado
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cliente'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /cuentas:
+    post:
+      tags: [Cuentas]
+      operationId: crearCuenta
+      summary: Crear una cuenta y, si no existe, su cliente
+      description: >-
+        La creación de cliente y cuenta es atómica. Los datos personales no
+        suministrados quedan nulos. NORMAL, PREMIUM y JUNIOR son categorías;
+        el ejercicio no define restricciones de edad ni saldo por categoría.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearCuenta'
+      responses:
+        '201':
+          $ref: '#/components/responses/Cuenta'
+        '400':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /cuentas/{idCuenta}:
+    put:
+      tags: [Cuentas]
+      operationId: actualizarSaldo
+      summary: Reemplazar el saldo de una cuenta
+      description: Una escritura concurrente incompatible devuelve 409; no se reintenta automáticamente.
+      parameters:
+        - name: idCuenta
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActualizarSaldo'
+      responses:
+        '200':
+          $ref: '#/components/responses/Cuenta'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+components:
+  headers:
+    CorrelationId:
+      description: >-
+        Identificador de correlación. Se conserva el X-Correlation-ID entrante
+        si contiene de 1 a 64 caracteres alfanuméricos, puntos, guiones o guiones bajos;
+        en otro caso se genera un UUID. Se aplica a todas las respuestas.
+      schema:
+        type: string
+  responses:
+    Clientes:
+      description: Clientes ordenados por DNI, con cuentas ordenadas por ID
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Cliente'
+    Cuenta:
+      description: Cuenta persistida
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Cuenta'
+    Error:
+      description: Error RFC 9457; 400 entrada inválida, 404 inexistente, 409 conflicto, 500 error interno
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+  schemas:
+    Dni:
+      type: string
+      pattern: '^[0-9]{8}[A-Za-z]$'
+      example: 11111111A
+      description: Se normaliza a mayúsculas. No se valida la letra de control para admitir los datos del ejercicio.
+    Importe:
+      type: number
+      minimum: 0
+      maximum: 99999999999999999.99
+      multipleOf: 0.01
+      example: 50000
+    TipoCuenta:
+      type: string
+      enum: [NORMAL, PREMIUM, JUNIOR]
+    Cuenta:
+      type: object
+      required: [id, dniCliente, tipoCuenta, total]
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        dniCliente:
+          $ref: '#/components/schemas/Dni'
+        tipoCuenta:
+          $ref: '#/components/schemas/TipoCuenta'
+        total:
+          $ref: '#/components/schemas/Importe'
+    Cliente:
+      type: object
+      required: [dni, nombre, apellido1, apellido2, fechaNacimiento, cuentas]
+      properties:
+        dni:
+          $ref: '#/components/schemas/Dni'
+        nombre:
+          type: string
+          nullable: true
+        apellido1:
+          type: string
+          nullable: true
+        apellido2:
+          type: string
+          nullable: true
+        fechaNacimiento:
+          type: string
+          format: date
+          nullable: true
+        cuentas:
+          type: array
+          items:
+            $ref: '#/components/schemas/Cuenta'
+    CrearCuenta:
+      type: object
+      additionalProperties: false
+      required: [dniCliente, tipoCuenta, total]
+      properties:
+        dniCliente:
+          $ref: '#/components/schemas/Dni'
+        tipoCuenta:
+          $ref: '#/components/schemas/TipoCuenta'
+        total:
+          $ref: '#/components/schemas/Importe'
+    ActualizarSaldo:
+      type: object
+      additionalProperties: false
+      required: [total]
+      properties:
+        total:
+          $ref: '#/components/schemas/Importe'
+    Problema:
+      type: object
+      required: [type, title, status, detail, instance, codigo, correlationId]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        codigo:
+          type: string
+        correlationId:
+          type: string
+        errores:
+          type: object
+          additionalProperties:
+            type: string

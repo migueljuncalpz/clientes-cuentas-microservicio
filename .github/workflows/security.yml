@@ -1,0 +1,229 @@
+name: Security
+on:
+  push:
+    branches: [main, develop, 'feature/**', 'bugfix/**', 'release/**', 'hotfix/**', 'support/**']
+  pull_request:
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  secrets:
+    name: Gitleaks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install verified Gitleaks CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          install_dir="$RUNNER_TEMP/gitleaks"
+          mkdir -p "$install_dir"
+          curl --fail --silent --show-error --location \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            --output "$install_dir/gitleaks.tar.gz"
+          printf '%s  %s\n' \
+            '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb' \
+            "$install_dir/gitleaks.tar.gz" | sha256sum --check --strict
+          tar -xzf "$install_dir/gitleaks.tar.gz" -C "$install_dir" gitleaks
+      - name: Scan complete Git history and working tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/security
+          "$RUNNER_TEMP/gitleaks/gitleaks" git . --log-opts="--all" --redact=100 \
+            --report-format=sarif --report-path=target/security/gitleaks-history.sarif
+          "$RUNNER_TEMP/gitleaks/gitleaks" dir . --redact=100 \
+            --report-format=sarif --report-path=target/security/gitleaks-files.sarif
+      - name: Publish redacted secret scan reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gitleaks-reports
+          path: target/security/gitleaks-*.sarif
+          if-no-files-found: warn
+          retention-days: 7
+
+  dependencies:
+    name: OWASP Dependency-Check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Compute vulnerability database cache key
+        id: date
+        run: echo "day=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+      - name: Cache NVD database
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/dependency-check
+          key: ${{ runner.os }}-dependency-check-13-${{ steps.date.outputs.day }}
+          restore-keys: |
+            ${{ runner.os }}-dependency-check-13-
+      - name: Scan resolved Maven dependencies
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${NVD_API_KEY:-}" ]]; then
+            echo '::notice::NVD_API_KEY is not configured. Initial NVD updates will be slower.'
+          fi
+          ./mvnw --batch-mode --no-transfer-progress -Psecurity dependency-check:check
+      - name: Publish dependency vulnerability reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dependency-check-reports
+          path: target/security/dependency-check/
+          if-no-files-found: warn
+          retention-days: 14
+
+  codeql:
+    name: CodeQL Java
+    if: github.event.repository.visibility == 'public' || vars.ENABLE_CODEQL == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+      packages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: github/codeql-action/init@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4
+        with:
+          languages: java-kotlin
+          build-mode: manual
+          queries: security-extended
+      - name: Build Java sources for CodeQL
+        run: ./mvnw --batch-mode --no-transfer-progress -DskipTests -Djacoco.skip=true clean package
+      - uses: github/codeql-action/analyze@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4
+        with:
+          category: /language:java-kotlin
+
+  zap:
+    name: ZAP API scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Package the disposable application
+        run: ./mvnw --batch-mode --no-transfer-progress -DskipTests -Djacoco.skip=true package
+      - name: Start isolated H2 application
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/security
+          java -jar target/clientes-cuentas-microservicio-0.1.0-SNAPSHOT.jar \
+            --server.address=127.0.0.1 --server.port=8080 \
+            --spring.h2.console.enabled=false --management.otlp.tracing.export.enabled=false \
+            > target/security/application.log 2>&1 &
+          echo "$!" > target/security/application.pid
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:8080/actuator/health > /dev/null; then
+              exit 0
+            fi
+            if ! kill -0 "$(cat target/security/application.pid)" 2>/dev/null; then
+              echo 'Application exited before becoming ready.' >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          echo 'Application did not become ready within 60 seconds.' >&2
+          exit 1
+      - name: Actively scan OpenAPI endpoints
+        uses: zaproxy/action-api-scan@5158fe4d9d8fcc75ea204db81317cce7f9e5453d # v0.10.0
+        with:
+          target: http://127.0.0.1:8080/openapi.yaml
+          format: openapi
+          docker_name: ghcr.io/zaproxy/zaproxy:2.17.0
+          allow_issue_writing: false
+          fail_action: true
+          artifact_name: zap-api-reports
+          cmd_options: '-T 3 -z "-config scanner.maxScanDurationInMins=5 -config scanner.maxRuleDurationInMins=1"'
+      - name: Stop disposable application
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f target/security/application.pid ]]; then
+            kill "$(cat target/security/application.pid)" 2>/dev/null || true
+          fi
+      - name: Publish application scan logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: zap-application-logs
+          path: target/security/application.log
+          if-no-files-found: warn
+          retention-days: 7
+
+  sonar:
+    name: SonarQube
+    if: >-
+      vars.ENABLE_SONAR == 'true' &&
+      github.actor != 'dependabot[bot]' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Verify configuration and analyze quality gate
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${SONAR_TOKEN:-}" || -z "$SONAR_PROJECT_KEY" ]]; then
+            echo '::error::Configure SONAR_TOKEN and SONAR_PROJECT_KEY before enabling SonarQube.'
+            exit 1
+          fi
+          if [[ "$SONAR_HOST_URL" == 'https://sonarcloud.io' && -z "$SONAR_ORGANIZATION" ]]; then
+            echo '::error::SONAR_ORGANIZATION is required for SonarQube Cloud.'
+            exit 1
+          fi
+          args=("-Dsonar.projectKey=$SONAR_PROJECT_KEY" '-Dsonar.qualitygate.wait=true')
+          if [[ -n "$SONAR_ORGANIZATION" ]]; then
+            args+=("-Dsonar.organization=$SONAR_ORGANIZATION")
+          fi
+          ./mvnw --batch-mode --no-transfer-progress -Psonar clean verify sonar:sonar "${args[@]}"
