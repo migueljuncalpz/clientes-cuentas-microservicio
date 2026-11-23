@@ -72,33 +72,31 @@ paquetes completos, puntuaciones CVSS, los avisos de Spring ni el aviso DPoP.
 
 ## Avisos pendientes de Spring
 
-El análisis sigue detectando **23 CVE distintas en cuatro JAR**:
-`spring-core`, `spring-data-jpa`, `spring-security-core` y
-`spring-security-oauth2-resource-server`. Los cinco avisos de Security se repiten
-en los dos últimos JAR. Que no se observe una condición de explotación en el
-código actual no elimina la dependencia afectada.
+El escaneo de GitHub Actions del 23 de noviembre de 2026 detectó CVE en las
+versiones transitivas incluidas en el artefacto:
 
-| Grupo | Comprobación en este proyecto |
-| --- | --- |
-| Framework: CVE-2026-47883 a CVE-2026-47893 | Sin UrlHandlerFilter, XSLT, vistas por nombre, SpEL de usuarios, WebFlux, RSocket, SSE ni Jetty reactivo. |
-| Framework: CVE-2026-59280 a CVE-2026-59283 | Sin FreeMarker, EscapedErrors HTML, binding sobre listas autopoblables ni compilación SpEL. |
-| Framework: CVE-2026-59313 y CVE-2026-59314 | Sin SSE funcional ni Content-Disposition/multipart saliente derivado de entradas. |
-| JPA: CVE-2026-47834 | JPQL fijo parametrizado, sin consultas nativas con Sort/Pageable de usuarios. |
-| Security: CVE-2026-59270 y CVE-2026-47841 | Sin LDAP embebido ni WebAuthn/sesiones distribuidas. |
-| Security: CVE-2026-47842 y CVE-2026-59276 | Sin los cifradores, autenticadores Digest o servicios de tokens afectados. |
-| Security: CVE-2026-41707 | DPoP bloqueado explícitamente antes de autenticación. |
+| Dependencia detectada | Versión usada | Versión corregida para los avisos del informe | Disponibilidad |
+| --- | ---: | ---: | --- |
+| Spring Framework (`spring-core`) | 6.2.19 | 6.2.20 | Enterprise |
+| Spring Security (`spring-security-core` y `spring-security-oauth2-resource-server`) | 6.5.11 | 6.5.12 para los CVE del informe; 6.5.13 para CVE-2026-59273 | Enterprise |
+| Spring Data JPA | 3.5.13 | 3.5.14 | Enterprise |
 
-Los avisos oficiales sitúan las correcciones de
-[Framework 6.2.20](https://spring.io/security/cve-2026-47884/),
-[Security 6.5.12](https://spring.io/security/cve-2026-41707/) y
-[Data JPA 3.5.14](https://spring.io/security/cve-2026-47834/)
-en soporte Enterprise. Se comprobó en Maven Central que las ramas públicas
-terminan en 6.2.19, 6.5.11 y Boot 3.5.16 respectivamente.
+El informe actual incluye, entre otros, CVE-2026-47884–47893,
+CVE-2026-59280–59283 y CVE-2026-59313/59314 en Spring Framework;
+CVE-2026-47834 en Spring Data JPA; y CVE-2026-41707,
+CVE-2026-47841/47842, CVE-2026-59270/59276 en Spring Security. El umbral
+configurado es CVSS 7, por eso Dependency-Check devuelve código 1. El paso de
+actualización NVD sí finaliza correctamente; no es un error de descarga o de
+configuración del escáner.
 
-Para retirar completamente esos avisos hay que obtener los parches comerciales
-compatibles con Boot 3 o cambiar el requisito y migrar de forma coordinada a una
-rama pública corregida de Boot 4. No se mezcla Spring 7 con Boot 3.
-**El job de seguridad permanece bloqueado** mientras esos avisos superen CVSS 7.
+Las versiones que corrigen estos avisos en las ramas Spring 6.x compatibles con
+Boot 3 requieren soporte comercial de Spring. El enunciado exige mantener Boot 3,
+por lo que no se sube a Boot 4 para obtener las correcciones OSS de Spring 7.
+Esta limitación queda aceptada para la prueba técnica: las detecciones no se
+suprimen ni se rebaja el umbral, y el job de seguridad seguirá fallando hasta que
+se disponga de los parches Enterprise o cambie el requisito de plataforma. La
+mitigación específica de DPoP descrita arriba reduce esa ruta concreta, pero no
+elimina los demás hallazgos ni sustituye la actualización de Spring.
 
 ## Validación de esta rama
 
