@@ -68,14 +68,15 @@ jobs:
       - name: Compute vulnerability database cache key
         id: date
         run: echo "day=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
-      - name: Cache NVD database
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore NVD database
+        id: nvd-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/dependency-check
           key: ${{ runner.os }}-dependency-check-13-${{ steps.date.outputs.day }}
           restore-keys: |
             ${{ runner.os }}-dependency-check-13-
-      - name: Scan resolved Maven dependencies
+      - name: Update vulnerability database
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         shell: bash
@@ -86,7 +87,16 @@ jobs:
             echo '::notice::NVD_API_KEY is not configured. Using official NVD JSON 2.0 feeds.'
             nvd_args+=('-DnvdDatafeedUrl=https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{0}.json.gz')
           fi
-          ./mvnw --batch-mode --no-transfer-progress -Psecurity dependency-check:check "${nvd_args[@]}"
+          ./mvnw --batch-mode --no-transfer-progress -Psecurity dependency-check:update-only "${nvd_args[@]}"
+      - name: Save updated NVD database
+        if: steps.nvd-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/dependency-check
+          key: ${{ steps.nvd-cache.outputs.cache-primary-key }}
+      - name: Scan resolved Maven dependencies
+        # The preceding update must succeed; never scan stale data after an update error.
+        run: ./mvnw --batch-mode --no-transfer-progress -Psecurity dependency-check:check -DautoUpdate=false
       - name: Publish dependency vulnerability reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

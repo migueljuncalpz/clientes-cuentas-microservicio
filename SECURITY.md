@@ -112,6 +112,21 @@ rama pública corregida de Boot 4. No se mezcla Spring 7 con Boot 3.
   El proceso devuelve **código 1 por vulnerabilidades**, no por descarga o error
   de configuración; se mantiene el bloqueo de seguridad.
 
+## Caché NVD en GitHub Actions
+
+El workflow restaura la base, ejecuta `dependency-check:update-only` y guarda la
+caché diaria **antes** de ejecutar el análisis CVE. De ese modo, un fallo por
+vulnerabilidades no descarta una descarga correcta. La acción combinada
+`actions/cache` solo guarda automáticamente cuando el job termina con éxito.
+
+Si falla la actualización, no se guarda la base ni se inicia el análisis. El paso
+de análisis usa `autoUpdate=false` únicamente porque el paso anterior acaba de
+actualizarla; el perfil Maven mantiene las actualizaciones activadas por defecto
+y `nvdValidForHours=24`. Se restaura también la caché de días anteriores cuando
+no existe una coincidencia del día. Las cachés de GitHub están sujetas al ámbito
+de rama y a su política de eliminación: una rama sin caché accesible puede
+necesitar una primera descarga.
+
 ## Ejecutar las comprobaciones
 
 Usar JDK 21, el mismo que GitHub Actions:
