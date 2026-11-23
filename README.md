@@ -155,7 +155,6 @@ incluidos Actuator y las operaciones de escritura, quedan accesibles sin token;
 la aplicación registra un aviso al arrancar. No uses esta opción en entornos
 compartidos o productivos.
 
-
 ## Arrancar con Docker Compose
 
 Para quien corrige la prueba, basta con tener Docker Engine y Docker Compose v2;
@@ -192,8 +191,8 @@ TOKEN="$(docker compose exec -T app cat /app/var/jwt/token)"
 
 Los logs de arranque se consultan con `docker compose logs --follow app`; se sale
 con `Ctrl+C`. También están disponibles `/actuator/health` y `/actuator/prometheus` usando el
-Bearer token. Si el puerto 8080 está ocupado, se
-puede elegir otro, por ejemplo `APP_PORT=8081 docker compose up --build --detach`;
+Bearer token. Si el puerto 8080 está ocupado, se puede elegir otro, por ejemplo
+`APP_PORT=8081 docker compose up --build --detach`;
 la aplicación seguirá escuchando dentro del contenedor en 8080.
 
 La clave y el token se generan dentro del contenedor y no se guardan en el

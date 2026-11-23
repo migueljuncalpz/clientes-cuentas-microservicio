@@ -15,6 +15,10 @@ cada familia, sin fijar versiones de JAR individuales:
 | Jackson | 2.21.4 | 2.21.8 | `jackson-bom.version` |
 | Log4j API y puente SLF4J | 2.24.3 | 2.25.5 | `log4j2.version` |
 | Kotlin JVM | 1.9.25 | 2.4.21 | `kotlin.version` |
+| Apache Commons Lang | 3.17.0 | 3.18.0 | `commons-lang3.version` |
+
+Commons Lang 3.18.0 corrige [CVE-2025-48924](https://nvd.nist.gov/vuln/detail/CVE-2025-48924),
+que afecta las versiones 3.x anteriores a 3.18.0.
 
 Kotlin es una dependencia transitiva de OpenTelemetry → OkHttp/Okio. Se excluye
 el antiguo JAR `kotlin-stdlib-common` que Okio 3.6.0 incorporaba como 1.9.10:
@@ -100,7 +104,7 @@ elimina los demás hallazgos ni sustituye la actualización de Spring.
 
 ## Validación de esta rama
 
-- Java 21: **85 pruebas**, cero fallos/errores; cobertura de líneas **96,89 %**.
+- Java 21: **89 pruebas**, cero fallos/errores; cobertura de líneas **96,75 %**.
 - Exportación OTLP real a un colector HTTP temporal: correcta con Kotlin 2.4.21.
 - JAR arrancado con clave RSA temporal: seis comprobaciones HTTP correctas
   (sin token 401, Bearer válido 200 en API/salud/métricas, DPoP 401).

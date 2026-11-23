@@ -21,6 +21,8 @@
         <jackson-bom.version>2.21.8</jackson-bom.version>
         <log4j2.version>2.25.5</log4j2.version>
         <kotlin.version>2.4.21</kotlin.version>
+        <!-- Fix CVE-2025-48924, which affects Commons Lang before 3.18.0. -->
+        <commons-lang3.version>3.18.0</commons-lang3.version>
         <archunit.version>1.4.1</archunit.version>
         <jacoco.version>0.8.14</jacoco.version>
         <dependency-check.version>13.0.0</dependency-check.version>
