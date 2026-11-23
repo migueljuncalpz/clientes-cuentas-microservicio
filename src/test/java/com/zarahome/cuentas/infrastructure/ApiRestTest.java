@@ -27,6 +27,7 @@ import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import java.io.InputStream;
 import java.util.Set;
+import java.util.Map;
 import java.util.TreeSet;
 import java.util.UUID;
 
@@ -98,6 +99,21 @@ class ApiRestTest {
             assertThat(raiz.at(referencia.substring(1)).isMissingNode()).isFalse();
         }
         nodo.forEach(hijo -> verificarReferencias(hijo, raiz));
+    }
+
+    @Test
+    void protegeRespuestasCorrectasYErroresConCabecerasDeSeguridad() throws Exception {
+        Map<String, Integer> casos = Map.of(
+                "/clientes", 200,
+                "/clientes/invalido", 400,
+                "/clientes/99999999Z", 404);
+        for (Map.Entry<String, Integer> caso : casos.entrySet()) {
+            mvc.perform(get(caso.getKey()))
+                    .andExpect(status().is(caso.getValue()))
+                    .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                    .andExpect(header().string("Cross-Origin-Resource-Policy", "same-origin"))
+                    .andExpect(header().string("Cache-Control", "no-store"));
+        }
     }
 
     @Test
