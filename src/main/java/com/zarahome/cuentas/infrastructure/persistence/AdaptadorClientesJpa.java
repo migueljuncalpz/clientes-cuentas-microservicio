@@ -2,10 +2,12 @@ package com.zarahome.cuentas.infrastructure.persistence;
 
 import com.zarahome.cuentas.application.port.out.RepositorioClientes;
 import com.zarahome.cuentas.domain.Cliente;
+import com.zarahome.cuentas.domain.Dinero;
 import com.zarahome.cuentas.domain.Dni;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,6 +24,18 @@ public class AdaptadorClientesJpa implements RepositorioClientes {
     @Override
     public List<Cliente> listarConCuentas() {
         return clientes.listarConCuentas().stream().map(MapeadorPersistencia::aDominio).toList();
+    }
+
+    @Override
+    public List<Cliente> listarMayoresDeEdad(LocalDate fechaLimiteNacimiento) {
+        return clientes.listarMayoresDeEdad(fechaLimiteNacimiento).stream()
+                .map(MapeadorPersistencia::aDominio).toList();
+    }
+
+    @Override
+    public List<Cliente> listarConSaldoSuperiorA(Dinero cantidad) {
+        return clientes.listarConSaldoSuperiorA(cantidad.valor()).stream()
+                .map(MapeadorPersistencia::aDominio).toList();
     }
 
     @Override

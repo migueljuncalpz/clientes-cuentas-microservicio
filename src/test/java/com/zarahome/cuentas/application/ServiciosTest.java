@@ -44,20 +44,36 @@ class ServiciosTest {
     @Test
     void distingueAdultosMenoresYFechasDesconocidasConRelojInyectado() {
         Cliente adulto = new Cliente(dni, "Juan", null, null, LocalDate.of(2008, 11, 23), List.of());
-        Cliente menor = new Cliente(new Dni("22222222J"), "Raúl", null, null,
-                LocalDate.of(2008, 11, 24), List.of());
+        LocalDate limite = LocalDate.of(2008, 11, 23);
+        Cliente menor = new Cliente(new Dni("22222222J"), "Raúl", null, null, limite.plusDays(1), List.of());
         when(clientes.listarConCuentas()).thenReturn(List.of(adulto, menor, Cliente.pendiente(new Dni("33333333P"))));
+        when(clientes.listarMayoresDeEdad(limite)).thenReturn(List.of(adulto));
         assertThat(consultas.listarMayoresDeEdad()).containsExactly(adulto);
         assertThat(consultas.listar()).hasSize(3);
+        verify(clientes).listarMayoresDeEdad(limite);
     }
 
     @Test
     void filtraPorElSaldoAgregado() {
         Cliente cliente = new Cliente(dni, null, null, null, null,
                 List.of(CuentaBancaria.nueva(dni, TipoCuenta.NORMAL, saldo)));
-        when(clientes.listarConCuentas()).thenReturn(List.of(cliente, Cliente.pendiente(new Dni("22222222J"))));
-        assertThat(consultas.listarConSaldoSuperiorA(new Dinero(BigDecimal.ZERO))).containsExactly(cliente);
+        Dinero cero = new Dinero(BigDecimal.ZERO);
+        when(clientes.listarConSaldoSuperiorA(cero)).thenReturn(List.of(cliente));
+        when(clientes.listarConSaldoSuperiorA(saldo)).thenReturn(List.of());
+        assertThat(consultas.listarConSaldoSuperiorA(cero)).containsExactly(cliente);
         assertThat(consultas.listarConSaldoSuperiorA(saldo)).isEmpty();
+        verify(clientes).listarConSaldoSuperiorA(cero);
+    }
+
+    @Test
+    void incluyeElCumpleanosDelVeintinueveDeFebreroAlCumplirDieciocho() {
+        Clock relojFebrero = Clock.fixed(Instant.parse("2026-02-28T12:00:00Z"), ZoneOffset.UTC);
+        ServicioClientes consultasFebrero = new ServicioClientes(clientes, transacciones, relojFebrero);
+        Cliente cliente = new Cliente(new Dni("12345678Z"), null, null, null, LocalDate.of(2008, 2, 29), List.of());
+        when(clientes.listarMayoresDeEdad(LocalDate.of(2008, 2, 29))).thenReturn(List.of(cliente));
+
+        assertThat(consultasFebrero.listarMayoresDeEdad()).containsExactly(cliente);
+        verify(clientes).listarMayoresDeEdad(LocalDate.of(2008, 2, 29));
     }
 
     @Test

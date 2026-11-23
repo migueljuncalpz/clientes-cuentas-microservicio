@@ -16,10 +16,10 @@ del saldo, con arquitectura hexagonal y contrato OpenAPI.
   Se admite desde cero hasta `99999999999999999.99`; no se redondean importes con
   decimales significativos adicionales. Los clientes que consuman la API deben
   usar también un tipo decimal para conservar la precisión.
-- Los filtros se ejecutan sobre modelos inmutables usando Streams. La lectura de
-  clientes y cuentas se resuelve con un `JOIN FETCH`, sin N+1 ni Open Session in View.
-  La API devuelve todos los resultados para ajustarse al ejercicio; para grandes
-  volúmenes convendría añadir paginación y trasladar los filtros a consultas SQL.
+- Los filtros de mayoría de edad y saldo agregado se ejecutan en consultas SQL;
+  los clientes y sus cuentas se cargan con `JOIN FETCH`, sin N+1 ni Open Session
+  in View. La API devuelve todos los resultados para ajustarse al ejercicio;
+  para grandes volúmenes convendría añadir paginación.
 - Flyway controla esquema y datos iniciales. Hibernate valida el esquema y no lo
   crea. La clave foránea garantiza que una cuenta siempre tenga un titular.
 - `@Version` detecta actualizaciones concurrentes incompatibles y las traduce a

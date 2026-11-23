@@ -10,6 +10,7 @@ import com.zarahome.cuentas.domain.ErrorDominio;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.Year;
 import java.util.List;
 
 public final class ServicioClientes implements ConsultarClientes {
@@ -31,16 +32,17 @@ public final class ServicioClientes implements ConsultarClientes {
     @Override
     public List<Cliente> listarMayoresDeEdad() {
         LocalDate hoy = LocalDate.now(reloj);
-        return transacciones.consultar(() -> clientes.listarConCuentas().stream()
-                .filter(cliente -> cliente.esMayorDeEdad(hoy))
-                .toList());
+        LocalDate fechaLimiteNacimiento = hoy.minusYears(18);
+        if (hoy.getMonthValue() == 2 && hoy.getDayOfMonth() == 28 && Year.isLeap(hoy.getYear() - 18)) {
+            fechaLimiteNacimiento = fechaLimiteNacimiento.plusDays(1);
+        }
+        LocalDate limite = fechaLimiteNacimiento;
+        return transacciones.consultar(() -> clientes.listarMayoresDeEdad(limite));
     }
 
     @Override
     public List<Cliente> listarConSaldoSuperiorA(Dinero cantidad) {
-        return transacciones.consultar(() -> clientes.listarConCuentas().stream()
-                .filter(cliente -> cliente.tieneSaldoSuperiorA(cantidad))
-                .toList());
+        return transacciones.consultar(() -> clientes.listarConSaldoSuperiorA(cantidad));
     }
 
     @Override
