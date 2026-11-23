@@ -61,6 +61,41 @@ Las dependencias apuntan hacia dentro: REST invoca puertos de entrada; los casos
 de uso invocan puertos de salida; JPA implementa esos puertos. Los modelos JPA y
 los DTO HTTP nunca se devuelven al dominio.
 
+### Arquitectura hexagonal
+
+```mermaid
+flowchart LR
+    subgraph entrada[Adaptador de entrada · REST]
+        REST[ClientesController / CuentasController]
+        DTO[DTO HTTP<br/>CrearCuentaRequest · ActualizarSaldoRequest<br/>ClienteResponse · CuentaResponse]
+        REST --- DTO
+    end
+
+    subgraph nucleo[Núcleo de la aplicación]
+        PIN[Puertos de entrada<br/>ConsultarClientes · GestionarCuentas]
+        UC[Casos de uso<br/>ServicioClientes · ServicioCuentas]
+        DOM[Dominio<br/>Cliente · CuentaBancaria · TipoCuenta<br/>VO: Dni · Dinero]
+        POUT[Puertos de salida<br/>RepositorioClientes · RepositorioCuentas · Transacciones]
+        PIN --> UC
+        UC --> DOM
+        UC --> POUT
+    end
+
+    subgraph salida[Adaptadores de salida]
+        JPA[Persistencia JPA<br/>Adaptadores y entidades]
+        TX[TransaccionesSpring]
+    end
+
+    REST --> PIN
+    POUT --> JPA
+    POUT --> TX
+```
+
+REST entra al núcleo por los **puertos de entrada**. Los casos de uso usan el
+dominio y dependen de **puertos de salida**, implementados por los adaptadores
+JPA y Spring. Así, el núcleo no depende de REST ni de la base de datos. Los DTO
+pertenecen al adaptador REST; `Dni` y `Dinero` son objetos de valor del dominio.
+
 ## Reglas que concreta la solución
 
 - El alta recibe únicamente `dniCliente`, `tipoCuenta` y `total`. Si el cliente no
