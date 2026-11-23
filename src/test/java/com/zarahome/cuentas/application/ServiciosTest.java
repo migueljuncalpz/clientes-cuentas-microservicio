@@ -2,6 +2,7 @@ package com.zarahome.cuentas.application;
 
 import com.zarahome.cuentas.application.port.out.RepositorioClientes;
 import com.zarahome.cuentas.application.port.out.RepositorioCuentas;
+import com.zarahome.cuentas.application.port.out.Transacciones;
 import com.zarahome.cuentas.domain.Cliente;
 import com.zarahome.cuentas.domain.CuentaBancaria;
 import com.zarahome.cuentas.domain.Dinero;
@@ -18,6 +19,8 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -82,6 +85,35 @@ class ServiciosTest {
         when(cuentas.guardar(any())).thenReturn(new CuentaBancaria(8L, dni, TipoCuenta.NORMAL, saldo));
         gestion.crear(dni, TipoCuenta.NORMAL, saldo);
         verify(clientes).crear(Cliente.pendiente(dni));
+    }
+
+    @Test
+    void reintentaEnUnaTransaccionNuevaSiElClienteSeCreoConcurrentemente() {
+        AtomicInteger intentos = new AtomicInteger();
+        Transacciones transaccionesConConflicto = new Transacciones() {
+            @Override
+            public <T> T consultar(Supplier<T> operacion) {
+                return operacion.get();
+            }
+
+            @Override
+            public <T> T ejecutar(Supplier<T> operacion) {
+                if (intentos.incrementAndGet() == 1) {
+                    operacion.get();
+                    throw new ConflictoPersistenciaException(new RuntimeException("clave duplicada al confirmar"));
+                }
+                return operacion.get();
+            }
+        };
+        ServicioCuentas servicio = new ServicioCuentas(clientes, cuentas, transaccionesConConflicto);
+        CuentaBancaria guardada = new CuentaBancaria(8L, dni, TipoCuenta.NORMAL, saldo);
+        when(clientes.existe(dni)).thenReturn(false, true, true);
+        when(cuentas.guardar(any())).thenReturn(guardada);
+
+        assertThat(servicio.crear(dni, TipoCuenta.NORMAL, saldo)).isEqualTo(guardada);
+        verify(clientes).crear(Cliente.pendiente(dni));
+        verify(cuentas, org.mockito.Mockito.times(2)).guardar(any());
+        assertThat(intentos).hasValue(2);
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.zarahome.cuentas.infrastructure;
 import com.zarahome.cuentas.application.port.out.RepositorioClientes;
 import com.zarahome.cuentas.application.port.out.RepositorioCuentas;
 import com.zarahome.cuentas.application.port.out.Transacciones;
+import com.zarahome.cuentas.application.port.in.GestionarCuentas;
 import com.zarahome.cuentas.domain.Cliente;
 import com.zarahome.cuentas.domain.CuentaBancaria;
 import com.zarahome.cuentas.domain.Dinero;
@@ -51,6 +52,9 @@ class PersistenciaTest {
     @Autowired
     private RepositorioCuentas cuentas;
 
+    @Autowired
+    private GestionarCuentas gestionCuentas;
+
     @Test
     void revierteClienteYCuentaSiFallaLaTransaccion() {
         Dni dni = new Dni("66666666Q");
@@ -87,6 +91,31 @@ class PersistenciaTest {
         assertThat(conflictos).isEqualTo(1);
         BigDecimal saldo = transacciones.consultar(() -> cuentas.buscar(1).orElseThrow().total().valor());
         assertThat(saldo).isIn(new BigDecimal("10.00"), new BigDecimal("20.00"));
+    }
+
+    @Test
+    void dosAltasConcurrentesDelMismoClienteCreanDosCuentasSinDuplicarCliente() throws Exception {
+        Dni dni = new Dni("12345678Z");
+        CountDownLatch inicio = new CountDownLatch(1);
+        try (ExecutorService ejecutor = Executors.newFixedThreadPool(2)) {
+            Future<CuentaBancaria> primera = ejecutor.submit(() -> {
+                inicio.await();
+                return gestionCuentas.crear(dni, TipoCuenta.NORMAL, new Dinero(BigDecimal.TEN));
+            });
+            Future<CuentaBancaria> segunda = ejecutor.submit(() -> {
+                inicio.await();
+                return gestionCuentas.crear(dni, TipoCuenta.JUNIOR, new Dinero(BigDecimal.ONE));
+            });
+            inicio.countDown();
+            CuentaBancaria cuenta1 = primera.get(15, TimeUnit.SECONDS);
+            CuentaBancaria cuenta2 = segunda.get(15, TimeUnit.SECONDS);
+            assertThat(cuenta1.id()).isNotEqualTo(cuenta2.id());
+        }
+
+        Cliente cliente = transacciones.consultar(() -> clientes.buscarConCuentas(dni).orElseThrow());
+        assertThat(cliente.cuentas()).hasSize(2);
+        assertThat(cliente.cuentas()).extracting(CuentaBancaria::tipoCuenta)
+                .containsExactlyInAnyOrder(TipoCuenta.NORMAL, TipoCuenta.JUNIOR);
     }
 
     private CuentaBancaria actualizarTrasLecturaCompartida(String saldo, CountDownLatch lecturasCompletadas) {
