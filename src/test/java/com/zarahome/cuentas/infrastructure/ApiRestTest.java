@@ -147,7 +147,7 @@ class ApiRestTest {
         mvc.perform(get("/clientes"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(5)))
-                .andExpect(jsonPath("$[*].dni", contains("11111111H", "22222222J", "33333333P", "44444444A", "55555555K")))
+                .andExpect(jsonPath("$[*].dni", contains("11111111A", "22222222B", "33333333C", "44444444D", "55555555E")))
                 .andExpect(jsonPath("$[0].nombre").value("Juan"))
                 .andExpect(jsonPath("$[0].fechaNacimiento").value("1959-09-12"))
                 .andExpect(jsonPath("$[0].cuentas", hasSize(2)))
@@ -160,14 +160,14 @@ class ApiRestTest {
     void devuelveSoloLosMayoresDeEdadConFechaDeterminista() throws Exception {
         mvc.perform(get("/clientes/mayores-de-edad"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[*].dni", contains("11111111H", "22222222J", "44444444A", "55555555K")));
+                .andExpect(jsonPath("$[*].dni", contains("11111111A", "22222222B", "44444444D", "55555555E")));
     }
 
     @Test
     void elFiltroSumaTodasLasCuentasYExcluyeLaIgualdad() throws Exception {
         mvc.perform(get("/clientes/con-cuenta-superior-a/150000"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[*].dni", contains("11111111H")));
+                .andExpect(jsonPath("$[*].dni", contains("11111111A")));
         mvc.perform(get("/clientes/con-cuenta-superior-a/170000"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
@@ -178,9 +178,9 @@ class ApiRestTest {
 
     @Test
     void consultaPorDniNormalizaLaLetraYDevuelveTodasLasCuentas() throws Exception {
-        mvc.perform(get("/clientes/22222222j"))
+        mvc.perform(get("/clientes/22222222b"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.dni").value("22222222J"))
+                .andExpect(jsonPath("$.dni").value("22222222B"))
                 .andExpect(jsonPath("$.nombre").value("Raúl"))
                 .andExpect(jsonPath("$.cuentas", hasSize(2)));
     }
@@ -201,14 +201,14 @@ class ApiRestTest {
     void agregaUnaCuentaSinAlterarLosDatosDelClienteExistente() throws Exception {
         mvc.perform(post("/cuentas").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"dniCliente":"11111111H","tipoCuenta":"NORMAL","total":50000.25}
+                                {"dniCliente":"11111111A","tipoCuenta":"NORMAL","total":50000.25}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.dniCliente").value("11111111H"))
+                .andExpect(jsonPath("$.dniCliente").value("11111111A"))
                 .andExpect(jsonPath("$.tipoCuenta").value("NORMAL"))
                 .andExpect(jsonPath("$.total").value(50000.25));
-        mvc.perform(get("/clientes/11111111H"))
+        mvc.perform(get("/clientes/11111111A"))
                 .andExpect(jsonPath("$.nombre").value("Juan"))
                 .andExpect(jsonPath("$.fechaNacimiento").value("1959-09-12"))
                 .andExpect(jsonPath("$.cuentas", hasSize(3)));
@@ -235,7 +235,7 @@ class ApiRestTest {
     @Test
     void dosAltasRepresentanDosCuentasDistintas() throws Exception {
         String body = """
-                {"dniCliente":"11111111H","tipoCuenta":"NORMAL","total":1}
+                {"dniCliente":"11111111A","tipoCuenta":"NORMAL","total":1}
                 """;
         MvcResult primera = mvc.perform(post("/cuentas").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated()).andReturn();
@@ -244,7 +244,7 @@ class ApiRestTest {
         JsonNode cuenta1 = objectMapper.readTree(primera.getResponse().getContentAsString());
         JsonNode cuenta2 = objectMapper.readTree(segunda.getResponse().getContentAsString());
         assertThat(cuenta1.get("id")).isNotEqualTo(cuenta2.get("id"));
-        mvc.perform(get("/clientes/11111111H")).andExpect(jsonPath("$.cuentas", hasSize(4)));
+        mvc.perform(get("/clientes/11111111A")).andExpect(jsonPath("$.cuentas", hasSize(4)));
     }
 
     @Test
@@ -255,7 +255,7 @@ class ApiRestTest {
                     .andExpect(jsonPath("$.id").value(1))
                     .andExpect(jsonPath("$.total").value(180000.10));
         }
-        mvc.perform(get("/clientes/11111111H"))
+        mvc.perform(get("/clientes/11111111A"))
                 .andExpect(jsonPath("$.cuentas", hasSize(2)))
                 .andExpect(jsonPath("$.cuentas[0].total").value(180000.10));
     }
@@ -277,7 +277,7 @@ class ApiRestTest {
         mvc.perform(put("/cuentas/1").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
-        mvc.perform(get("/clientes/11111111H")).andExpect(jsonPath("$.cuentas[0].total").value(150000.00));
+        mvc.perform(get("/clientes/11111111A")).andExpect(jsonPath("$.cuentas[0].total").value(150000.00));
     }
 
     @ParameterizedTest
@@ -315,7 +315,7 @@ class ApiRestTest {
         mvc.perform(put("/cuentas/1").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"total\":99999999999999999.99}"))
                 .andExpect(status().isOk());
-        MvcResult resultado = mvc.perform(get("/clientes/11111111H")).andExpect(status().isOk()).andReturn();
+        MvcResult resultado = mvc.perform(get("/clientes/11111111A")).andExpect(status().isOk()).andReturn();
         JsonNode cliente = objectMapper.reader().with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
                 .readTree(resultado.getResponse().getContentAsString());
         assertThat(cliente.path("cuentas").get(0).path("total").asText()).isEqualTo("99999999999999999.99");

@@ -50,11 +50,11 @@ class SeguridadResourceServerTest {
                 .andExpect(status().isOk());
         mvc.perform(post("/cuentas").with(jwtConPermisos("cuentas.read"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"dniCliente\":\"11111111H\",\"tipoCuenta\":\"NORMAL\",\"total\":1}"))
+                        .content("{\"dniCliente\":\"11111111A\",\"tipoCuenta\":\"NORMAL\",\"total\":1}"))
                 .andExpect(status().isForbidden());
         mvc.perform(post("/cuentas").with(jwtConPermisos("cuentas.write"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"dniCliente\":\"11111111H\",\"tipoCuenta\":\"NORMAL\",\"total\":1}"))
+                        .content("{\"dniCliente\":\"11111111A\",\"tipoCuenta\":\"NORMAL\",\"total\":1}"))
                 .andExpect(status().isCreated());
     }
 

@@ -23,7 +23,7 @@
     },
     {
       "key": "dniCliente",
-      "value": "11111111H",
+      "value": "11111111A",
       "type": "string"
     },
     {
@@ -286,7 +286,7 @@
                   "const clientes = pm.response.json();",
                   "pm.test(\"Incluye los cinco clientes iniciales\", function () {",
                   "    pm.expect(clientes).to.be.an(\"array\");",
-                  "    pm.expect(clientes.map(c => c.dni)).to.include.members([\"11111111H\", \"22222222J\", \"33333333P\", \"44444444A\", \"55555555K\"]);",
+                  "    pm.expect(clientes.map(c => c.dni)).to.include.members([\"11111111A\", \"22222222B\", \"33333333C\", \"44444444D\", \"55555555E\"]);",
                   "});",
                   "pm.test(\"Clientes ordenados y cuentas asociadas a su titular\", function () {",
                   "    const dnis = clientes.map(c => c.dni);",
@@ -340,7 +340,7 @@
                 }
               ],
               "cookie": [],
-              "body": "[\n  {\n    \"dni\": \"11111111H\",\n    \"nombre\": \"Juan\",\n    \"apellido1\": \"Pérez\",\n    \"apellido2\": \"López\",\n    \"fechaNacimiento\": \"1959-09-12\",\n    \"cuentas\": [\n      {\n        \"id\": 1,\n        \"dniCliente\": \"11111111H\",\n        \"tipoCuenta\": \"PREMIUM\",\n        \"total\": 150000\n      },\n      {\n        \"id\": 2,\n        \"dniCliente\": \"11111111H\",\n        \"tipoCuenta\": \"NORMAL\",\n        \"total\": 20000\n      }\n    ]\n  }\n]"
+              "body": "[\n  {\n    \"dni\": \"11111111A\",\n    \"nombre\": \"Juan\",\n    \"apellido1\": \"Pérez\",\n    \"apellido2\": \"López\",\n    \"fechaNacimiento\": \"1959-09-12\",\n    \"cuentas\": [\n      {\n        \"id\": 1,\n        \"dniCliente\": \"11111111A\",\n        \"tipoCuenta\": \"PREMIUM\",\n        \"total\": 150000\n      },\n      {\n        \"id\": 2,\n        \"dniCliente\": \"11111111A\",\n        \"tipoCuenta\": \"NORMAL\",\n        \"total\": 20000\n      }\n    ]\n  }\n]"
             }
           ]
         },
@@ -428,7 +428,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"dni\": \"11111111H\",\n  \"nombre\": \"Juan\",\n  \"apellido1\": \"Pérez\",\n  \"apellido2\": \"López\",\n  \"fechaNacimiento\": \"1959-09-12\",\n  \"cuentas\": [\n    {\n      \"id\": 1,\n      \"dniCliente\": \"11111111H\",\n      \"tipoCuenta\": \"PREMIUM\",\n      \"total\": 150000\n    },\n    {\n      \"id\": 2,\n      \"dniCliente\": \"11111111H\",\n      \"tipoCuenta\": \"NORMAL\",\n      \"total\": 20000\n    }\n  ]\n}"
+              "body": "{\n  \"dni\": \"11111111A\",\n  \"nombre\": \"Juan\",\n  \"apellido1\": \"Pérez\",\n  \"apellido2\": \"López\",\n  \"fechaNacimiento\": \"1959-09-12\",\n  \"cuentas\": [\n    {\n      \"id\": 1,\n      \"dniCliente\": \"11111111A\",\n      \"tipoCuenta\": \"PREMIUM\",\n      \"total\": 150000\n    },\n    {\n      \"id\": 2,\n      \"dniCliente\": \"11111111A\",\n      \"tipoCuenta\": \"NORMAL\",\n      \"total\": 20000\n    }\n  ]\n}"
             }
           ]
         },
@@ -661,7 +661,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"id\": 8,\n  \"dniCliente\": \"11111111H\",\n  \"tipoCuenta\": \"NORMAL\",\n  \"total\": 50000.25\n}"
+              "body": "{\n  \"id\": 8,\n  \"dniCliente\": \"11111111A\",\n  \"tipoCuenta\": \"NORMAL\",\n  \"total\": 50000.25\n}"
             }
           ]
         },

@@ -40,9 +40,11 @@ public class ConfiguracionSeguridad {
     SecurityFilterChain filtroSeguridad(HttpSecurity http) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
+                .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(new SoloBearerFilter(), SecurityContextHolderFilter.class)
                 .authorizeHttpRequests(autorizacion -> autorizacion
+                        .requestMatchers("/h2-console", "/h2-console/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/swagger-ui.html", "/swagger-ui/**", "/webjars/**",
                                 "/openapi.yaml", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/clientes", "/clientes/**").hasAuthority(CUENTAS_READ)

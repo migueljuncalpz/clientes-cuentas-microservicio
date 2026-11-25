@@ -38,15 +38,15 @@ class ServiciosTest {
     private final Clock reloj = Clock.fixed(Instant.parse("2026-11-23T12:00:00Z"), ZoneOffset.UTC);
     private final ServicioClientes consultas = new ServicioClientes(clientes, transacciones, reloj);
     private final ServicioCuentas gestion = new ServicioCuentas(clientes, cuentas, transacciones);
-    private final Dni dni = new Dni("11111111H");
+    private final Dni dni = new Dni("11111111A");
     private final Dinero saldo = new Dinero(new BigDecimal("10.00"));
 
     @Test
     void distingueAdultosMenoresYFechasDesconocidasConRelojInyectado() {
         Cliente adulto = new Cliente(dni, "Juan", null, null, LocalDate.of(2008, 11, 23), List.of());
         LocalDate limite = LocalDate.of(2008, 11, 23);
-        Cliente menor = new Cliente(new Dni("22222222J"), "Raúl", null, null, limite.plusDays(1), List.of());
-        when(clientes.listarConCuentas()).thenReturn(List.of(adulto, menor, Cliente.pendiente(new Dni("33333333P"))));
+        Cliente menor = new Cliente(new Dni("22222222B"), "Raúl", null, null, limite.plusDays(1), List.of());
+        when(clientes.listarConCuentas()).thenReturn(List.of(adulto, menor, Cliente.pendiente(new Dni("33333333C"))));
         when(clientes.listarMayoresDeEdad(limite)).thenReturn(List.of(adulto));
         assertThat(consultas.listarMayoresDeEdad()).containsExactly(adulto);
         assertThat(consultas.listar()).hasSize(3);

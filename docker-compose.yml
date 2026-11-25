@@ -4,8 +4,10 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
     environment:
+      SPRING_PROFILES_ACTIVE: "local"
+      SPRING_H2_CONSOLE_SETTINGS_WEB_ALLOW_OTHERS: "true"
       APP_SECURITY_ENABLED: "true"
       JWT_ISSUER_URI: "cuentas-local"
       JWT_AUDIENCE: "cuentas-api-local"

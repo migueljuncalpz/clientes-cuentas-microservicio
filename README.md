@@ -12,10 +12,12 @@ del saldo, con arquitectura hexagonal y contrato OpenAPI.
   de red se incorporarían cuando existiera una integración que los necesitara.
 - Dominio y aplicación son Java puro. Spring, JPA, validación HTTP y observabilidad
   se concentran en infraestructura. ArchUnit comprueba estas dependencias.
-- Los importes usan `BigDecimal` y `DECIMAL(19,2)`, evitando los errores de `Double`.
-  Se admite desde cero hasta `99999999999999999.99`; no se redondean importes con
-  decimales significativos adicionales. Los clientes que consuman la API deben
-  usar también un tipo decimal para conservar la precisión.
+- Los importes usan `BigDecimal` y `DECIMAL(19,2)`, aunque el enunciado menciona
+  `Double`. Se eligió el tipo decimal porque `Double` puede introducir errores
+  de representación y redondeo en operaciones monetarias. La API sigue recibiendo
+  y devolviendo números JSON. Se admite desde cero hasta `99999999999999999.99`;
+  no se redondean importes con decimales significativos adicionales. Los clientes
+  que consuman la API deben usar también un tipo decimal para conservar la precisión.
 - Los filtros de mayoría de edad y saldo agregado se ejecutan en consultas SQL;
   los clientes y sus cuentas se cargan con `JOIN FETCH`, sin N+1 ni Open Session
   in View. La API devuelve todos los resultados para ajustarse al ejercicio;
@@ -106,8 +108,16 @@ pertenecen al adaptador REST; `Dni` y `Dinero` son objetos de valor del dominio.
   del filtro de adultos. Las pruebas fijan el reloj en el 23 de noviembre de 2026.
 - El filtro por cantidad compara la **suma de todas las cuentas** con `>` estricto.
   Por ejemplo, Juan suma 170000 y aparece al filtrar por 150000, pero no por 170000.
-- Se valida el formato del DNI, sus ocho dígitos y la letra de control según el
-  algoritmo oficial; la letra se normaliza a mayúsculas.
+- Se valida el formato del DNI (ocho dígitos y una letra) y se normaliza la letra
+  a mayúsculas. Se conservan literalmente los DNI de ejemplo del enunciado,
+  aunque sus letras no correspondan al algoritmo de control oficial. La primera
+  implementación también validaba la letra de control: era una regla semántica
+  razonable para el objeto de valor `Dni`, que representa un DNI español, pero
+  resultaba más estricta que el contrato de esta prueba. Como varios ejemplos
+  proporcionados no superan ese cálculo, esa regla impedía consultar los datos
+  exigidos. Se retiró para priorizar la compatibilidad con el enunciado; en un
+  sistema real, la validación oficial dependería de que el negocio confirmase
+  que los identificadores deben ser DNI españoles válidos.
 - `NORMAL`, `PREMIUM` y `JUNIOR` son categorías. No se añaden restricciones de edad
   o saldo por tipo que el ejercicio no define.
 - `PUT` sustituye el saldo y es idempotente. `POST` crea una cuenta en cada petición
@@ -167,7 +177,12 @@ Para empaquetar y ejecutar el JAR:
 java -jar target/clientes-cuentas-microservicio-0.1.0-SNAPSHOT.jar --spring.profiles.active=local
 ```
 
-El perfil `local` no expone la consola H2.
+Con el perfil `local`, la consola H2 está disponible en `http://localhost:8080/h2-console`.
+Usa JDBC URL `jdbc:h2:mem:cuentas`, usuario `sa` y contraseña vacía. La consola
+solo se habilita en el perfil local; el perfil por defecto la mantiene desactivada
+porque permite inspeccionar y modificar la base de datos directamente. En Docker
+se habilita la aceptación de conexiones del puente de red del contenedor, mientras
+el puerto publicado queda limitado a `127.0.0.1`.
 
 ### Omitir autenticación para la evaluación
 
@@ -264,13 +279,13 @@ TOKEN="$(python3 scripts/local-jwt.py)"
 curl http://localhost:8080/clientes -H "Authorization: Bearer ${TOKEN}"
 curl http://localhost:8080/clientes/mayores-de-edad -H "Authorization: Bearer ${TOKEN}"
 curl http://localhost:8080/clientes/con-cuenta-superior-a/150000 -H "Authorization: Bearer ${TOKEN}"
-curl http://localhost:8080/clientes/11111111H -H "Authorization: Bearer ${TOKEN}"
+curl http://localhost:8080/clientes/11111111A -H "Authorization: Bearer ${TOKEN}"
 
 curl -X POST http://localhost:8080/cuentas \
   -H "Authorization: Bearer ${TOKEN}" \
   -H 'Content-Type: application/json' \
   -H 'X-Correlation-ID: alta-cuenta-001' \
-  -d '{"dniCliente":"11111111H","tipoCuenta":"NORMAL","total":50000}'
+  -d '{"dniCliente":"11111111A","tipoCuenta":"NORMAL","total":50000}'
 
 curl -X POST http://localhost:8080/cuentas \
   -H "Authorization: Bearer ${TOKEN}" \

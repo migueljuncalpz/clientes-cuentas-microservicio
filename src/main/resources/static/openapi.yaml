@@ -112,14 +112,14 @@ paths:
       operationId: obtenerCliente
       summary: Obtener cliente por DNI
       description: >-
-        Devuelve el cliente y todas sus cuentas. Se acepta la letra de control en
+        Devuelve el cliente y todas sus cuentas. La letra final se acepta en
         minúscula y se devuelve normalizada a mayúscula.
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
         - name: dni
           in: path
           required: true
-          description: DNI con ocho dígitos y letra de control válida.
+          description: DNI con ocho dígitos y una letra.
           schema:
             $ref: '#/components/schemas/Dni'
       responses:
@@ -133,18 +133,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/Cliente'
               example:
-                dni: 11111111H
+                dni: 11111111A
                 nombre: Juan
                 apellido1: Pérez
                 apellido2: López
                 fechaNacimiento: '1959-09-12'
                 cuentas:
                   - id: 1
-                    dniCliente: 11111111H
+                    dniCliente: 11111111A
                     tipoCuenta: PREMIUM
                     total: 150000.00
         '400':
-          description: El formato o la letra de control del DNI no es válido.
+          description: El DNI no tiene el formato esperado.
           content:
             application/problem+json:
               schema:
@@ -194,7 +194,7 @@ paths:
               cuentaNormal:
                 summary: Crear una cuenta normal
                 value:
-                  dniCliente: 22222222J
+                  dniCliente: 22222222B
                   tipoCuenta: NORMAL
                   total: 250.00
       responses:
@@ -209,7 +209,7 @@ paths:
                 $ref: '#/components/schemas/Cuenta'
               example:
                 id: 8
-                dniCliente: 22222222J
+                dniCliente: 22222222B
                 tipoCuenta: NORMAL
                 total: 250.00
         '400':
@@ -282,7 +282,7 @@ paths:
                 $ref: '#/components/schemas/Cuenta'
               example:
                 id: 1
-                dniCliente: 11111111H
+                dniCliente: 11111111A
                 tipoCuenta: PREMIUM
                 total: 1250.50
         '400':
@@ -369,14 +369,14 @@ components:
             items:
               $ref: '#/components/schemas/Cliente'
           example:
-            - dni: 11111111H
+            - dni: 11111111A
               nombre: Juan
               apellido1: Pérez
               apellido2: López
               fechaNacimiento: '1959-09-12'
               cuentas:
                 - id: 1
-                  dniCliente: 11111111H
+                  dniCliente: 11111111A
                   tipoCuenta: PREMIUM
                   total: 150000.00
     Unauthorized:
@@ -455,13 +455,13 @@ components:
         codigo: JSON_INVALIDO
         correlationId: 8b5f68a2-0cd1-4cc4-968a-1ef4d119558c
     DniInvalido:
-      summary: DNI vacío, con formato incorrecto o letra de control no válida
+      summary: DNI vacío o con formato incorrecto
       value:
         type: about:blank
         title: Bad Request
         status: 400
-        detail: La letra de control del DNI no es válida.
-        instance: /clientes/12345678A
+        detail: El DNI debe contener ocho dígitos y una letra.
+        instance: /clientes/1234567A
         codigo: DNI_INVALIDO
         correlationId: 8b5f68a2-0cd1-4cc4-968a-1ef4d119558c
     ImporteInvalido:
@@ -528,10 +528,10 @@ components:
     Dni:
       type: string
       pattern: '^[0-9]{8}[A-Za-z]$'
-      example: 11111111H
+      example: 11111111A
       description: >-
-        Ocho dígitos seguidos de una letra. La letra de control debe corresponder
-        al número y se devuelve normalizada a mayúscula; se acepta minúscula en la entrada.
+        Ocho dígitos seguidos de una letra. Se acepta minúscula en la entrada;
+        la letra final se devuelve normalizada a mayúscula.
     Importe:
       type: number
       minimum: 0
