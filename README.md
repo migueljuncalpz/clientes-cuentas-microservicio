@@ -174,7 +174,7 @@ Para empaquetar y ejecutar el JAR:
 
 ```bash
 ./mvnw clean verify
-java -jar target/clientes-cuentas-microservicio-0.1.0-SNAPSHOT.jar --spring.profiles.active=local
+java -jar target/clientes-cuentas-microservicio-0.1.1.jar --spring.profiles.active=local
 ```
 
 Con el perfil `local`, la consola H2 está disponible en `http://localhost:8080/h2-console`.
@@ -196,7 +196,7 @@ APP_SECURITY_ENABLED=false ./mvnw spring-boot:run -Dspring-boot.run.profiles=loc
 También se puede usar con el JAR:
 
 ```bash
-APP_SECURITY_ENABLED=false java -jar target/clientes-cuentas-microservicio-0.1.0-SNAPSHOT.jar \
+APP_SECURITY_ENABLED=false java -jar target/clientes-cuentas-microservicio-0.1.1.jar \
   --spring.profiles.active=local
 ```
 

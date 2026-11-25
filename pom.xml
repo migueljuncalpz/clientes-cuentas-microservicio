@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.zarahome</groupId>
     <artifactId>clientes-cuentas-microservicio</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.1</version>
     <name>Clientes y cuentas bancarias</name>
     <description>Gestión de clientes y cuentas con arquitectura hexagonal</description>
     <properties>
